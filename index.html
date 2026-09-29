@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CNN 與 Transformer 全程圖解</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one vertical "line" per model; each station = 圖 + 形狀 + 參數量 + code + 考點. Left rail carries the shape badge. */
+:root{
+  --bg:#F5F7FA; --paper:#FFFFFF; --ink:#1A2233; --muted:#5B6678; --line:#D6DCE5;
+  --accent:#D9662B; --accent-soft:#FBEADF; --shape:#0F7C8C; --shape-soft:#DDF1F3;
+  --code-bg:#1E2533; --code-fg:#E6EBF2; --code-cm:#8FA3BF; --warn:#B8860B; --warn-soft:#FFF4D6;
+  --f-body:"Noto Sans TC","IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --f-display:"IBM Plex Sans","Noto Sans TC",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171F; --paper:#1A212C; --ink:#E8EDF4; --muted:#9AA7B8; --line:#2E3847;
+  --accent:#F0864A; --accent-soft:#3A2617; --shape:#3FB9C9; --shape-soft:#123238;
+  --code-bg:#0D1219; --code-fg:#E6EBF2; --code-cm:#7C90AB; --warn:#E3B341; --warn-soft:#3A2F10;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171F; --paper:#1A212C; --ink:#E8EDF4; --muted:#9AA7B8; --line:#2E3847;
+  --accent:#F0864A; --accent-soft:#3A2617; --shape:#3FB9C9; --shape-soft:#123238;
+  --code-bg:#0D1219; --code-fg:#E6EBF2; --code-cm:#7C90AB; --warn:#E3B341; --warn-soft:#3A2F10;
+  color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15.5px;line-height:1.7;margin:0}
+.wrap{max-width:900px;margin:0 auto;padding-inline:20px;padding-block:32px 80px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.25;margin:0}
+h1{font-size:2rem;font-weight:700}
+h2{font-size:1.45rem;font-weight:700;margin-top:56px;padding-top:20px;border-top:3px solid var(--ink)}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+.lead{color:var(--muted);margin-top:10px;max-width:62ch}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+code{font-family:var(--f-mono);font-size:.88em;background:var(--shape-soft);color:var(--ink);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);color:var(--code-fg);font-family:var(--f-mono);font-size:.82rem;line-height:1.6;padding:14px 16px;border-radius:6px;overflow-x:auto;margin:0}
+pre code{background:none;color:inherit;padding:0;font-size:inherit}
+pre .c{color:var(--code-cm)}
+pre .h{color:var(--accent)}
+.fig{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:10px 12px;overflow-x:auto;margin:0}
+.fig svg{display:block;width:100%;height:auto;max-width:100%}
+.fig .cap{font-size:.82rem;color:var(--muted);margin-top:6px}
+
+/* station */
+.line{display:flex;flex-direction:column;gap:28px;margin-top:24px}
+.st{display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px}
+.st .rail{display:flex;flex-direction:column;gap:6px}
+.badge{font-family:var(--f-mono);font-size:.8rem;font-weight:600;color:var(--shape);background:var(--shape-soft);padding:6px 8px;border-radius:4px;display:inline-block;font-variant-numeric:tabular-nums}
+.badge.p{color:var(--accent);background:var(--accent-soft)}
+.rail .k{font-size:.72rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-family:var(--f-mono)}
+.st .body{display:flex;flex-direction:column;gap:12px;min-width:0}
+.st h3{display:flex;gap:10px;align-items:baseline}
+.st h3 .n{font-family:var(--f-mono);font-size:.8rem;color:var(--accent);font-weight:600}
+.trap{border-left:3px solid var(--warn);background:var(--warn-soft);padding:8px 12px;border-radius:0 4px 4px 0;font-size:.92rem}
+.trap b{color:var(--warn)}
+.say{font-size:.95rem}
+.say b{color:var(--accent)}
+@media (max-width:640px){.st{grid-template-columns:1fr}.st .rail{flex-direction:row;flex-wrap:wrap;align-items:center}.rail .k{display:none}}
+
+/* tables */
+table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{font-weight:600;font-size:.8rem;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;font-family:var(--f-mono)}
+td code{white-space:nowrap}
+
+/* overview strip */
+.strip{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;margin-top:16px}
+.strip .b{background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:8px 10px;min-width:0;flex:1 1 120px}
+.strip .b .t{font-weight:600;font-size:.9rem}
+.strip .b .s{font-family:var(--f-mono);font-size:.78rem;color:var(--shape);font-variant-numeric:tabular-nums}
+.strip .b .q{font-size:.78rem;color:var(--muted)}
+
+details{border:1px solid var(--line);border-radius:5px;background:var(--paper);padding:10px 14px}
+details+details{margin-top:8px}
+summary{cursor:pointer;font-weight:600}
+summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details .a{margin-top:8px;font-size:.93rem;border-top:1px dashed var(--line);padding-top:8px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.note{font-size:.9rem;color:var(--muted)}
+.chk{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:14px}
+.chk .b{background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:10px 12px;font-size:.92rem}
+.chk .b b{color:var(--shape);font-family:var(--f-mono);font-size:.8rem;display:block;margin-bottom:4px}
+a{color:var(--accent)}
+@media (prefers-reduced-motion:no-preference){details[open] .a{animation:fade .18s ease-out}}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+</style></head><body>
+
+<div class="wrap">
+<div class="eyebrow">iPAS AI 應用規劃師中級 · 科目三 · L23203 深度學習原理與框架</div>
+<h1 style="margin-top:8px">CNN 與 Transformer 全程圖解</h1>
+<p class="lead">兩條線各走一遍：每一站只講四件事——它在做什麼、進出形狀、參數量、對應的一行程式。深度只到考試會問的地方。所有例子都用同一組小數字，方便手算對照。</p>
+
+<div class="chk">
+  <div class="b"><b>怎麼讀</b>左邊淺藍是<strong>形狀</strong>（那一站的輸出長什麼樣），橘色是<strong>參數量</strong>（那一站有幾顆可學的旋鈕）。沒有橘色 = 這一站沒有參數。</div>
+  <div class="b"><b>推，不背</b>每一站的參數量都能從圖推出來。考試會變形（問 C_in、問輸出形狀、問哪一層參數最多），懂圖的人每種都推得出。</div>
+  <div class="b"><b>考點來源</b>114-2、115-1 考古題與 115-2 樣題實際出現過的切角，標在每站的黃色框。</div>
+</div>
+
+<!-- ================= PART 1 CNN ================= -->
+<h2 id="cnn">第一條線：CNN（影像分類）</h2>
+<p class="lead">例子：32×32 彩色 PCB 影像，分 10 類瑕疵。整條線 6 站，可學參數只在 3 站。</p>
+
+<div class="strip">
+  <div class="b"><div class="t">輸入</div><div class="s">(32,32,3)</div><div class="q">—</div></div>
+  <div class="b"><div class="t">Conv 64</div><div class="s">(32,32,64)</div><div class="q">1,792</div></div>
+  <div class="b"><div class="t">ReLU</div><div class="s">不變</div><div class="q">0</div></div>
+  <div class="b"><div class="t">Pool 2×2</div><div class="s">(16,16,64)</div><div class="q">0</div></div>
+  <div class="b"><div class="t">Conv 128</div><div class="s">(16,16,128)</div><div class="q">73,856</div></div>
+  <div class="b"><div class="t">Pool 2×2</div><div class="s">(8,8,128)</div><div class="q">0</div></div>
+  <div class="b"><div class="t">Flatten</div><div class="s">(8192,)</div><div class="q">0</div></div>
+  <div class="b"><div class="t">Dense 10</div><div class="s">(10,)</div><div class="q">81,930</div></div>
+</div>
+<p class="note" style="margin-top:8px">總參數 157,578。最後一層全連接佔了一半以上——這就是 VGG16 那題「哪一層參數最多」的答案來源。</p>
+
+<div class="line">
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(32, 32, 3)</span><span class="k">參數</span><span class="badge p">0</span></div>
+  <div class="body">
+    <h3><span class="n">站 1</span>輸入影像</h3>
+    <p class="say">一張圖不是一個平面，是 <b>3 層疊在一起</b>的平面（R、G、B 各一層）。「通道」這個詞就是「幾層」。灰階 X 光只有 1 層，所以要接 ImageNet 模型時得 repeat 成 3 層。</p>
+    <pre><code><span class="c"># Keras 通道在最後 (H, W, C)；PyTorch 通道在前 (C, H, W)</span>
+input_shape=(32, 32, 3)          <span class="c"># Keras</span>
+x = torch.randn(N, 3, 32, 32)    <span class="c"># PyTorch，N 是批次大小</span></code></pre>
+    <div class="trap"><b>考點</b>　Keras 是 channels-last、PyTorch 是 channels-first。題目給 <code>(N, 3, 32, 32)</code> 就是 PyTorch，第二個數字才是通道。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(32, 32, 64)</span><span class="k">參數</span><span class="badge p">1,792</span></div>
+  <div class="body">
+    <h3><span class="n">站 2</span>Conv2D：一排手電筒</h3>
+    <p class="say">一個 filter 是一支手電筒：照一個 3×3 的小窗，但要<b>同時看穿全部 3 個通道</b>，所以它身上有 3×3×3 = 27 顆旋鈕，再加 1 顆總亮度（bias）。這支手電筒從左上掃到右下，每照一格就輸出一個數，掃完得到一張 32×32 的「特徵圖」。64 支手電筒 → 64 張特徵圖疊起來，就是輸出的 64 個通道。</p>
+    <div class="fig">
+<svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="一個 3×3×3 的卷積核掃過三通道輸入，產生一張特徵圖；64 個卷積核產生 64 張">
+<style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}.s{font-family:var(--f-mono);font-size:12px;fill:var(--shape);font-weight:600}</style>
+<!-- input 3 channels -->
+<g>
+<rect x="60" y="60" width="120" height="120" fill="var(--paper)" stroke="var(--line)"/>
+<rect x="50" y="70" width="120" height="120" fill="var(--paper)" stroke="var(--line)"/>
+<rect x="40" y="80" width="120" height="120" fill="var(--paper)" stroke="var(--ink)" stroke-width="1"/>
+<rect x="60" y="100" width="36" height="36" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+<rect x="70" y="90" width="36" height="36" fill="none" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 2"/>
+<rect x="80" y="80" width="36" height="36" fill="none" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 2"/>
+<text class="t" x="100" y="225" text-anchor="middle">輸入 32×32×3</text>
+<text class="m" x="100" y="242" text-anchor="middle">3 層疊在一起</text>
+</g>
+<!-- filter -->
+<g>
+<rect x="250" y="100" width="40" height="40" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+<rect x="258" y="92" width="40" height="40" fill="none" stroke="var(--accent)" stroke-width="1"/>
+<rect x="266" y="84" width="40" height="40" fill="none" stroke="var(--accent)" stroke-width="1"/>
+<text class="t" x="278" y="165" text-anchor="middle">1 支 filter</text>
+<text class="s" x="278" y="183" text-anchor="middle">3×3×3 = 27 顆</text>
+<text class="m" x="278" y="200" text-anchor="middle">+1 bias = 28</text>
+</g>
+<path d="M170 118 L245 118" stroke="var(--muted)" stroke-width="1.2" fill="none" marker-end="url(#ar)"/>
+<path d="M312 118 L390 118" stroke="var(--muted)" stroke-width="1.2" fill="none" marker-end="url(#ar)"/>
+<defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="var(--muted)" stroke-width="1.5"/></marker></defs>
+<!-- feature maps -->
+<g>
+<rect x="470" y="40" width="110" height="110" fill="var(--shape-soft)" stroke="var(--line)"/>
+<rect x="460" y="50" width="110" height="110" fill="var(--shape-soft)" stroke="var(--line)"/>
+<rect x="450" y="60" width="110" height="110" fill="var(--shape-soft)" stroke="var(--line)"/>
+<rect x="400" y="80" width="110" height="110" fill="var(--shape-soft)" stroke="var(--shape)" stroke-width="1.2"/>
+<rect x="418" y="98" width="12" height="12" fill="var(--accent)"/>
+<text class="m" x="590" y="98">…</text>
+<text class="t" x="490" y="225" text-anchor="middle">輸出 32×32×64</text>
+<text class="m" x="490" y="242" text-anchor="middle">1 支 filter → 1 張特徵圖，64 支 → 64 張</text>
+</g>
+<text class="s" x="640" y="118" text-anchor="middle">28 × 64</text>
+<text class="s" x="640" y="136" text-anchor="middle">= 1,792</text>
+</svg>
+    <div class="cap">橘色小方塊：手電筒照這一格，27 個乘積加起來 + bias，寫進輸出特徵圖的對應位置。</div></div>
+    <div class="tw"><table>
+      <tr><th>符號</th><th>意思</th><th>從程式碼哪裡看</th><th>本站</th></tr>
+      <tr><td>k</td><td>核邊長</td><td><code>(3, 3)</code></td><td>3</td></tr>
+      <tr><td>C_in</td><td>輸入通道</td><td>上一站的最後一個數（第一層看 <code>input_shape</code>）</td><td>3</td></tr>
+      <tr><td>C_out</td><td>filter 數 = 輸出通道</td><td><code>Conv2D(<b>64</b>, …)</code></td><td>64</td></tr>
+      <tr><td>—</td><td>不影響參數量</td><td>長寬 32×32、activation、padding、stride</td><td>忽略</td></tr>
+    </table></div>
+    <p class="say"><b>參數量 = k × k × C_in × C_out + C_out</b> = 3×3×3×64 + 64 = 1,728 + 64 = 1,792</p>
+    <pre><code>Conv2D(64, (3, 3), activation='relu', padding='same', input_shape=(32, 32, 3))   <span class="c"># Keras</span>
+nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, padding=1)             <span class="c"># PyTorch</span></code></pre>
+    <div class="trap"><b>考點</b>　① 忘加 bias 得 1,728，必有此干擾選項。② 參數量與影像大小無關（權重共享），32×32 換成 224×224 參數還是 1,792。③ 反推題：給 896 與 k=3、C_out=32 → (896−32)÷(9×32) = 3 → 彩色。④ 兩層之間夾 Pooling，第二層的 C_in 是第一層的 C_out，Pooling 不改通道。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">同輸入</span><span class="k">參數</span><span class="badge p">0</span></div>
+  <div class="body">
+    <h3><span class="n">站 2b</span>輸出多大：padding 與 stride</h3>
+    <p class="say">手電筒掃到邊緣時，最後幾格照不滿。<b>same</b> = 先在外圍補一圈 0，讓輸出長寬跟輸入一樣；<b>valid</b> = 不補，輸出會縮小。<b>stride</b> = 每次跳幾格，stride 2 就直接把長寬減半。</p>
+    <div class="fig">
+<svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="valid 卷積 5×5 輸入得 3×3 輸出；same 補零後輸出 5×5">
+<style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}.s{font-family:var(--f-mono);font-size:12px;fill:var(--shape);font-weight:600}</style>
+<g transform="translate(40,30)">
+<g fill="var(--paper)" stroke="var(--line)">
+<rect x="0" y="0" width="22" height="22"/><rect x="22" y="0" width="22" height="22"/><rect x="44" y="0" width="22" height="22"/><rect x="66" y="0" width="22" height="22"/><rect x="88" y="0" width="22" height="22"/>
+<rect x="0" y="22" width="22" height="22"/><rect x="22" y="22" width="22" height="22"/><rect x="44" y="22" width="22" height="22"/><rect x="66" y="22" width="22" height="22"/><rect x="88" y="22" width="22" height="22"/>
+<rect x="0" y="44" width="22" height="22"/><rect x="22" y="44" width="22" height="22"/><rect x="44" y="44" width="22" height="22"/><rect x="66" y="44" width="22" height="22"/><rect x="88" y="44" width="22" height="22"/>
+<rect x="0" y="66" width="22" height="22"/><rect x="22" y="66" width="22" height="22"/><rect x="44" y="66" width="22" height="22"/><rect x="66" y="66" width="22" height="22"/><rect x="88" y="66" width="22" height="22"/>
+<rect x="0" y="88" width="22" height="22"/><rect x="22" y="88" width="22" height="22"/><rect x="44" y="88" width="22" height="22"/><rect x="66" y="88" width="22" height="22"/><rect x="88" y="88" width="22" height="22"/>
+</g>
+<rect x="0" y="0" width="66" height="66" fill="var(--accent-soft)" fill-opacity=".6" stroke="var(--accent)" stroke-width="1.5"/>
+<text class="t" x="55" y="135" text-anchor="middle">valid：5×5 輸入</text>
+<text class="s" x="55" y="153" text-anchor="middle">→ 3×3 輸出</text>
+<text class="m" x="55" y="170" text-anchor="middle">5 − 3 + 1 = 3</text>
+</g>
+<g transform="translate(250,8)">
+<g fill="var(--bg)" stroke="var(--line)" stroke-dasharray="2 2">
+<rect x="0" y="0" width="154" height="22"/><rect x="0" y="132" width="154" height="22"/><rect x="0" y="22" width="22" height="110"/><rect x="132" y="22" width="22" height="110"/>
+</g>
+<g fill="var(--paper)" stroke="var(--line)">
+<rect x="22" y="22" width="22" height="22"/><rect x="44" y="22" width="22" height="22"/><rect x="66" y="22" width="22" height="22"/><rect x="88" y="22" width="22" height="22"/><rect x="110" y="22" width="22" height="22"/>
+<rect x="22" y="44" width="22" height="22"/><rect x="44" y="44" width="22" height="22"/><rect x="66" y="44" width="22" height="22"/><rect x="88" y="44" width="22" height="22"/><rect x="110" y="44" width="22" height="22"/>
+<rect x="22" y="66" width="22" height="22"/><rect x="44" y="66" width="22" height="22"/><rect x="66" y="66" width="22" height="22"/><rect x="88" y="66" width="22" height="22"/><rect x="110" y="66" width="22" height="22"/>
+<rect x="22" y="88" width="22" height="22"/><rect x="44" y="88" width="22" height="22"/><rect x="66" y="88" width="22" height="22"/><rect x="88" y="88" width="22" height="22"/><rect x="110" y="88" width="22" height="22"/>
+<rect x="22" y="110" width="22" height="22"/><rect x="44" y="110" width="22" height="22"/><rect x="66" y="110" width="22" height="22"/><rect x="88" y="110" width="22" height="22"/><rect x="110" y="110" width="22" height="22"/>
+</g>
+<rect x="0" y="0" width="66" height="66" fill="var(--accent-soft)" fill-opacity=".6" stroke="var(--accent)" stroke-width="1.5"/>
+<text class="m" x="11" y="15" text-anchor="middle">0</text>
+<text class="t" x="77" y="177" text-anchor="middle">same：外圍補一圈 0</text>
+<text class="s" x="77" y="195" text-anchor="middle">→ 5×5 輸出（不變）</text>
+</g>
+<g transform="translate(470,30)">
+<text class="t" x="0" y="10">輸出邊長公式</text>
+<text class="m" x="0" y="34">out = ⌊(n + 2p − k) / s⌋ + 1</text>
+<text class="m" x="0" y="58">n 輸入邊長　k 核邊長</text>
+<text class="m" x="0" y="76">p 補零圈數　s 步幅</text>
+<text class="t" x="0" y="106">same, s=1 → out = n</text>
+<text class="t" x="0" y="126">same, s=2 → out = n/2</text>
+<text class="t" x="0" y="146">valid, s=1 → out = n−k+1</text>
+<text class="m" x="0" y="172">k=3 要 same，p=1（PyTorch padding=1）</text>
+</g>
+</svg></div>
+    <div class="trap"><b>考點</b>　「輸入 28×28，3×3 核、valid、stride 1，輸出多大？」→ 26×26。「同一層改 stride 2」→ 13×13。padding/stride 只改<b>形狀</b>，不改<b>參數量</b>。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(32, 32, 64)</span><span class="k">參數</span><span class="badge p">0</span></div>
+  <div class="body">
+    <h3><span class="n">站 3</span>ReLU：負的歸零</h3>
+    <p class="say">卷積算完的每個數，負的變 0、正的照過。<b>沒有它，兩層卷積疊起來還是一個線性運算</b>，疊再多層也等於一層——是非線性讓「深」有意義。</p>
+    <div class="fig">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ReLU 折線與 Sigmoid S 曲線並排，ReLU 正區斜率 1，Sigmoid 兩端平坦">
+<style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}</style>
+<g transform="translate(60,20)">
+<line x1="0" y1="110" x2="220" y2="110" stroke="var(--line)"/><line x1="110" y1="0" x2="110" y2="130" stroke="var(--line)"/>
+<path d="M0 110 L110 110 L220 10" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
+<text class="t" x="110" y="150" text-anchor="middle">ReLU：max(0, x)</text>
+<text class="m" x="150" y="40">斜率 1</text><text class="m" x="20" y="100">斜率 0</text>
+</g>
+<g transform="translate(400,20)">
+<line x1="0" y1="110" x2="220" y2="110" stroke="var(--line)"/><line x1="110" y1="0" x2="110" y2="130" stroke="var(--line)"/>
+<path d="M0 108 C60 106, 80 100, 95 80 S130 30, 160 20 S200 12, 220 12" fill="none" stroke="var(--shape)" stroke-width="2.5"/>
+<text class="t" x="110" y="150" text-anchor="middle">Sigmoid：兩端躺平，最大斜率 0.25</text>
+<text class="m" x="20" y="100">≈0</text><text class="m" x="185" y="32">≈0</text>
+</g>
+</svg></div>
+    <pre><code>Conv2D(64, (3,3), activation='relu')     <span class="c"># Keras 寫在層裡</span>
+x = F.relu(self.conv1(x))                <span class="c"># PyTorch 另外呼叫</span></code></pre>
+    <div class="trap"><b>考點</b>　隱藏層全用 Sigmoid + 很深 → 「前幾層權重不動、loss 降很慢」= 梯度消失，解法換 ReLU。Sigmoid 最大斜率 0.25，12 層連乘 0.25¹² ≈ 6×10⁻⁸。ReLU 正區斜率恆為 1，不會逐層衰減。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(16, 16, 64)</span><span class="k">參數</span><span class="badge p">0</span></div>
+  <div class="body">
+    <h3><span class="n">站 4</span>MaxPooling：每 2×2 只留最大</h3>
+    <p class="say">把特徵圖切成 2×2 的小格，每格只留最大值。長寬各減半、<b>通道數不變、沒有任何參數</b>。目的：縮小計算量，並且對小位移不敏感（瑕疵往右移一格，池化後看起來一樣）。</p>
+    <div class="fig">
+<svg viewBox="0 0 720 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="4×4 特徵圖經 2×2 最大池化得 2×2">
+<style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:13px;fill:var(--ink)}.s{font-family:var(--f-mono);font-size:12px;fill:var(--shape);font-weight:600}</style>
+<g transform="translate(120,20)">
+<g fill="var(--paper)" stroke="var(--line)">
+<rect x="0" y="0" width="30" height="26"/><rect x="30" y="0" width="30" height="26"/><rect x="60" y="0" width="30" height="26"/><rect x="90" y="0" width="30" height="26"/>
+<rect x="0" y="26" width="30" height="26"/><rect x="30" y="26" width="30" height="26"/><rect x="60" y="26" width="30" height="26"/><rect x="90" y="26" width="30" height="26"/>
+<rect x="0" y="52" width="30" height="26"/><rect x="30" y="52" width="30" height="26"/><rect x="60" y="52" width="30" height="26"/><rect x="90" y="52" width="30" height="26"/>
+<rect x="0" y="78" width="30" height="26"/><rect x="30" y="78" width="30" height="26"/><rect x="60" y="78" width="30" height="26"/><rect x="90" y="78" width="30" height="26"/>
+</g>
+<rect x="0" y="0" width="60" height="52" fill="none" stroke="var(--accent)" stroke-width="2"/>
+<rect x="60" y="0" width="60" height="52" fill="none" stroke="var(--shape)" stroke-width="2"/>
+<rect x="0" y="52" width="60" height="52" fill="none" stroke="var(--shape)" stroke-width="2"/>
+<rect x="60" y="52" width="60" height="52" fill="none" stroke="var(--accent)" stroke-width="2"/>
+<g class="m" text-anchor="middle">
+<text x="15" y="18">1</text><text x="45" y="18">3</text><text x="75" y="18">2</text><text x="105" y="18">0</text>
+<text x="15" y="44">7</text><text x="45" y="44">2</text><text x="75" y="44">5</text><text x="105" y="44">1</text>
+<text x="15" y="70">0</text><text x="45" y="70">4</text><text x="75" y="70">9</text><text x="105" y="70">8</text>
+<text x="15" y="96">6</text><text x="45" y="96">1</text><text x="75" y="96">3</text><text x="105" y="96">2</text>
+</g>
+<text class="t" x="60" y="128" text-anchor="middle">4×4</text>
+</g>
+<path d="M270 72 L340 72" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar2)"/>
+<defs><marker id="ar2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="var(--muted)" stroke-width="1.5"/></marker></defs>
+<text class="t" x="305" y="60" text-anchor="middle">2×2 取最大</text>
+<g transform="translate(370,32)">
+<g fill="var(--shape-soft)" stroke="var(--line)"><rect x="0" y="0" width="40" height="40"/><rect x="40" y="0" width="40" height="40"/><rect x="0" y="40" width="40" height="40"/><rect x="40" y="40" width="40" height="40"/></g>
+<g class="m" text-anchor="middle"><text x="20" y="25">7</text><text x="60" y="25">5</text><text x="20" y="65">6</text><text x="60" y="65">9</text></g>
+<text class="t" x="40" y="106" text-anchor="middle">2×2</text>
+</g>
+<text class="s" x="560" y="60" text-anchor="middle">長寬 ÷2</text>
+<text class="s" x="560" y="80" text-anchor="middle">通道不變，參數 0</text>
+</svg></div>
+    <pre><code>MaxPooling2D((2, 2))      <span class="c"># Keras</span>
+nn.MaxPool2d(2)           <span class="c"># PyTorch；kernel=stride=2</span></code></pre>
+    <div class="trap"><b>考點</b>　Pooling 參數量 = 0。「哪些層有可學參數？」→ Conv、Dense（還有 BatchNorm）；Pooling、Flatten、Dropout、ReLU 都沒有。Max vs Average：Max 保留最強反應（找瑕疵），Average 保留整體平均（分類末端的 GlobalAveragePooling）。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(8, 8, 128)</span><span class="k">參數</span><span class="badge p">73,856</span></div>
+  <div class="body">
+    <h3><span class="n">站 5</span>第二組 Conv + Pool：通道變厚、長寬變小</h3>
+    <p class="say">同樣的手電筒，但這次每支要<b>看穿 64 層</b>，所以一支有 3×3×64 = 576 顆旋鈕 + 1 bias，共 128 支。CNN 越往後走的規律：<b>長寬越小、通道越多</b>，從「邊緣、顏色」升級到「形狀、零件」。</p>
+    <p class="say">3×3×64×128 + 128 = 73,728 + 128 = <b>73,856</b>，再接一次 Pool → (8, 8, 128)。</p>
+    <div class="trap"><b>考點</b>　不是 1,792 × 2。C_out 變 2 倍的同時 C_in 也從 3 變 64，所以是約 41 倍。「倍數直覺」只在 C_in 不變時才對。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(8192,)</span><span class="k">參數</span><span class="badge p">0</span></div>
+  <div class="body">
+    <h3><span class="n">站 6</span>Flatten：立方體拉成一條</h3>
+    <p class="say">8×8×128 的立方體，把每個數依序排成一條長 8,192 的向量。什麼都沒算，只是<b>換個形狀好接 Dense</b>。</p>
+    <pre><code>Flatten()                 <span class="c"># Keras</span>
+x = x.flatten(1)          <span class="c"># PyTorch；從第 1 軸開始攤平，保留批次軸 0</span></code></pre>
+    <div class="trap"><b>考點</b>　Flatten 後的長度 = 8×8×128 = 8,192，這個數決定下一層 Dense 的參數量。PyTorch 的 <code>flatten(1)</code> 那個 1 是「從哪一軸開始攤」，寫 <code>flatten()</code> 會把批次也攤掉。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(10,)</span><span class="k">參數</span><span class="badge p">81,930</span></div>
+  <div class="body">
+    <h3><span class="n">站 7</span>Dense + Softmax：投票</h3>
+    <p class="say">8,192 個數每一個都連到 10 個輸出，一條連線一顆旋鈕：8,192 × 10 = 81,920，再加 10 個 bias = <b>81,930</b>。Softmax 把 10 個分數換成加總 = 1 的比例。</p>
+    <div class="fig">
+<svg viewBox="0 0 720 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flatten 後 8192 個節點全連接到 10 個輸出，再經 softmax 成為機率">
+<style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}.s{font-family:var(--f-mono);font-size:12px;fill:var(--shape);font-weight:600}</style>
+<g>
+<rect x="60" y="20" width="26" height="150" rx="3" fill="var(--shape-soft)" stroke="var(--shape)"/>
+<text class="t" x="73" y="188" text-anchor="middle">8192</text>
+<g stroke="var(--line)" stroke-width="1">
+<line x1="86" y1="30" x2="300" y2="45"/><line x1="86" y1="30" x2="300" y2="95"/><line x1="86" y1="30" x2="300" y2="145"/>
+<line x1="86" y1="95" x2="300" y2="45"/><line x1="86" y1="95" x2="300" y2="95"/><line x1="86" y1="95" x2="300" y2="145"/>
+<line x1="86" y1="160" x2="300" y2="45"/><line x1="86" y1="160" x2="300" y2="95"/><line x1="86" y1="160" x2="300" y2="145"/>
+</g>
+<text class="s" x="190" y="18" text-anchor="middle">8192 × 10 條線 + 10 bias</text>
+<g fill="var(--paper)" stroke="var(--accent)" stroke-width="1.5">
+<circle cx="300" cy="45" r="9"/><circle cx="300" cy="95" r="9"/><circle cx="300" cy="145" r="9"/>
+</g>
+<text class="m" x="300" y="70" text-anchor="middle">⋮</text><text class="m" x="300" y="122" text-anchor="middle">⋮</text>
+<text class="t" x="300" y="180" text-anchor="middle">10 個 logits</text>
+</g>
+<path d="M330 95 L400 95" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar3)"/>
+<defs><marker id="ar3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="var(--muted)" stroke-width="1.5"/></marker></defs>
+<text class="t" x="365" y="85" text-anchor="middle">softmax</text>
+<g transform="translate(420,40)">
+<rect x="0" y="0" width="12" height="110" fill="var(--line)"/><rect x="0" y="99" width="12" height="11" fill="var(--accent)"/>
+<rect x="24" y="0" width="12" height="110" fill="var(--line)"/><rect x="24" y="22" width="12" height="88" fill="var(--accent)"/>
+<rect x="48" y="0" width="12" height="110" fill="var(--line)"/><rect x="48" y="104" width="12" height="6" fill="var(--accent)"/>
+<rect x="72" y="0" width="12" height="110" fill="var(--line)"/><rect x="72" y="102" width="12" height="8" fill="var(--accent)"/>
+<text class="m" x="100" y="60">…</text>
+<text class="m" x="6" y="128" text-anchor="middle">.10</text><text class="m" x="30" y="128" text-anchor="middle">.80</text><text class="m" x="54" y="128" text-anchor="middle">.05</text><text class="m" x="78" y="128" text-anchor="middle">.07</text>
+<text class="t" x="50" y="150" text-anchor="middle">10 個比例，加總 = 1</text>
+</g>
+<g transform="translate(580,40)">
+<text class="t" x="0" y="10">Dense 參數量</text>
+<text class="m" x="0" y="32">in × out + out</text>
+<text class="s" x="0" y="54">8192×10+10</text>
+<text class="s" x="0" y="72">= 81,930</text>
+</g>
+</svg></div>
+    <div class="tw"><table>
+      <tr><th>任務</th><th>輸出神經元</th><th>輸出激活</th><th>Keras 損失</th><th>PyTorch 損失</th></tr>
+      <tr><td>二分類</td><td>1</td><td>Sigmoid</td><td><code>binary_crossentropy</code></td><td><code>BCEWithLogitsLoss</code>（含 Sigmoid，輸出層不加）</td></tr>
+      <tr><td>多分類（互斥）</td><td>K</td><td>Softmax</td><td><code>sparse_categorical_crossentropy</code>（整數標籤）／<code>categorical_</code>（one-hot）</td><td><code>CrossEntropyLoss</code>（含 Softmax，輸出層不加）</td></tr>
+      <tr><td>多標籤（可同時）</td><td>標籤數</td><td>各自 Sigmoid</td><td><code>binary_crossentropy</code></td><td><code>BCEWithLogitsLoss</code></td></tr>
+      <tr><td>迴歸</td><td>1</td><td>線性／無</td><td><code>mse</code>；離群值多用 Huber</td><td><code>MSELoss</code>／<code>HuberLoss</code></td></tr>
+    </table></div>
+    <div class="trap"><b>考點</b>　PyTorch 分類輸出層裸奔：<code>forward</code> 回傳 logits，softmax 藏在 <code>CrossEntropyLoss</code> 裡；再加一次會雙重壓縮、訓練變慢。迴歸輸出層套 Sigmoid 會把預測壓在 (0,1)。「同時可能有刮痕＋斑點」= 多標籤用 Sigmoid，不是 Softmax。</div>
+  </div>
+</div>
+
+</div>
+
+<h3 style="margin-top:36px">整條線的程式碼</h3>
+<div class="grid2" style="margin-top:10px">
+<pre><code><span class="c"># Keras：形狀 (N, 32, 32, 3)</span>
+model = Sequential([
+  Conv2D(64, (3,3), activation='relu',
+         padding='same', input_shape=(32,32,3)),  <span class="h"># 1,792</span>
+  MaxPooling2D((2,2)),                            <span class="h"># 0</span>
+  Conv2D(128, (3,3), activation='relu',
+         padding='same'),                         <span class="h"># 73,856</span>
+  MaxPooling2D((2,2)),                            <span class="h"># 0</span>
+  Flatten(),                                      <span class="h"># 0 → 8192</span>
+  Dense(10, activation='softmax')                 <span class="h"># 81,930</span>
+])
+model.compile(optimizer='adam',
+  loss='sparse_categorical_crossentropy',
+  metrics=['accuracy'])
+model.fit(X_tr, y_tr, epochs=10,
+  validation_data=(X_val, y_val))</code></pre>
+<pre><code><span class="c"># PyTorch：形狀 (N, 3, 32, 32)</span>
+class Net(nn.Module):
+  def __init__(self):
+    super().__init__()
+    self.conv1 = nn.Conv2d(3, 64, 3, padding=1)
+    self.conv2 = nn.Conv2d(64, 128, 3, padding=1)
+    self.pool  = nn.MaxPool2d(2)
+    self.fc    = nn.Linear(8*8*128, 10)
+  def forward(self, x):
+    x = self.pool(F.relu(self.conv1(x)))  <span class="h"># (N,64,16,16)</span>
+    x = self.pool(F.relu(self.conv2(x)))  <span class="h"># (N,128,8,8)</span>
+    x = x.flatten(1)                      <span class="h"># (N,8192)</span>
+    return self.fc(x)                     <span class="h"># logits</span>
+
+criterion = nn.CrossEntropyLoss()  <span class="c"># 含 softmax</span>
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)</code></pre>
+</div>
+
+<h3 style="margin-top:28px">訓練一步在做什麼</h3>
+<p class="say" style="margin-top:8px">每個 batch 走四拍：<b>前向</b>算出 logits → <b>損失</b>算跟正確答案差多遠 → <b>反向傳播</b>把「誰該負責」一層一層往回傳（鏈鎖律，每層梯度相乘）→ <b>優化器</b>用梯度更新每顆旋鈕。梯度消失就發生在第三拍：連乘的每一項都小於 1，傳到前面就沒了。</p>
+<pre style="margin-top:10px"><code>for X, y in loader:
+    optimizer.zero_grad()          <span class="c"># 清掉上一步的梯度（忘記會累加）</span>
+    loss = criterion(model(X), y)  <span class="c"># 前向 + 損失</span>
+    loss.backward()                <span class="c"># 反向傳播：算每顆旋鈕的梯度</span>
+    optimizer.step()               <span class="c"># 更新旋鈕</span></code></pre>
+
+<h3 style="margin-top:28px">CNN 線上的三個經典模型，考試只問一句</h3>
+<div class="tw" style="margin-top:8px"><table>
+<tr><th>模型</th><th>一句話</th><th>考什麼</th></tr>
+<tr><td>VGG16</td><td>全部 3×3 卷積一路疊，最後三層 Dense</td><td>參數集中在 Dense（約 1.2 億的 1 億在 FC）；小核疊兩層 = 5×5 感受野但參數更少</td></tr>
+<tr><td>ResNet</td><td>每個區塊多一條 x 直達出口的捷徑，區塊只學殘差 F(x) = H(x) − x</td><td>捷徑是<b>相加</b>不是跳過；F(x)→0 比學恆等容易，所以加深不會變差；梯度多一條斜率 1 的路</td></tr>
+<tr><td>遷移學習</td><td>拿 ImageNet 練好的權重當起點</td><td>資料少＋領域近 → 全凍結只換頭；資料多＋領域遠 → 解凍後幾個區塊、小學習率；灰階 repeat 成 3 通道</td></tr>
+</table></div>
+
+<!-- ================= PART 2 TRANSFORMER ================= -->
+<h2 id="tf">第二條線：Transformer（序列）</h2>
+<p class="lead">例子：一句 4 個 token 的客服問句，d_model = 8，2 個 head。真實 BERT-base 是 d_model 768、12 head、12 層，結構一模一樣，只是數字大。整條線是「一個 encoder 層」，真正的模型把它疊 N 次。</p>
+
+<div class="strip">
+  <div class="b"><div class="t">Token</div><div class="s">(4,)</div><div class="q">整數 id</div></div>
+  <div class="b"><div class="t">Embedding</div><div class="s">(4, 8)</div><div class="q">V × 8</div></div>
+  <div class="b"><div class="t">+ 位置</div><div class="s">(4, 8)</div><div class="q">0 或 L×8</div></div>
+  <div class="b"><div class="t">多頭注意力</div><div class="s">(4, 8)</div><div class="q">288</div></div>
+  <div class="b"><div class="t">Add & Norm</div><div class="s">(4, 8)</div><div class="q">16</div></div>
+  <div class="b"><div class="t">FFN</div><div class="s">(4, 8)</div><div class="q">552</div></div>
+  <div class="b"><div class="t">Add & Norm</div><div class="s">(4, 8)</div><div class="q">16</div></div>
+  <div class="b"><div class="t">輸出頭</div><div class="s">(K,)</div><div class="q">8×K+K</div></div>
+</div>
+<p class="note" style="margin-top:8px">形狀從頭到尾都是 (L, d_model) = (4, 8)。這是 Transformer 和 CNN 最大的手感差異：CNN 一路縮長寬、加通道；Transformer 每一站進出形狀不變，所以可以無限疊。</p>
+
+<div class="line">
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8)</span><span class="k">參數</span><span class="badge p">V × 8</span></div>
+  <div class="body">
+    <h3><span class="n">站 1</span>Tokenize → Embedding：字變向量</h3>
+    <p class="say">句子先切成 token 換成整數 id（查字典），再用 Embedding 表把每個 id 換成一條長度 d_model 的向量。Embedding 表就是一張 <b>V × d_model</b> 的查詢表，V 是字典大小，這張表本身是可學參數。</p>
+    <pre><code>ids = tokenizer("退貨 要 幾 天")        <span class="c"># → [532, 17, 88, 203]，形狀 (4,)</span>
+emb = nn.Embedding(num_embeddings=V, embedding_dim=8)
+x = emb(torch.tensor(ids))               <span class="c"># (4, 8)：每個 token 一列</span></code></pre>
+    <div class="trap"><b>考點</b>　Embedding 不是 one-hot；one-hot 是 V 維稀疏，Embedding 是 d_model 維稠密且可學。「相似的字向量距離近」是它被學出來的性質。這一站和 RAG 的 embedding 向量檢索是同一個概念。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8)</span><span class="k">參數</span><span class="badge p">0 或 L×8</span></div>
+  <div class="body">
+    <h3><span class="n">站 2</span>位置編碼：把「第幾個」加回去</h3>
+    <p class="say">下一站的注意力是「每個字對所有字打分」，<b>它看不出誰先誰後</b>——把句子打亂，注意力算出來一樣。所以先給每個位置一條專屬向量，<b>加</b>到 embedding 上（形狀不變）。原論文用 sin/cos 固定公式（0 參數），BERT 用可學的位置表（L_max × d_model）。</p>
+    <pre><code>x = emb(ids) + pos_enc[:4]               <span class="c"># (4,8) + (4,8)，逐元素相加，不是串接</span></code></pre>
+    <div class="trap"><b>考點</b>　「為什麼 Transformer 需要位置編碼而 RNN 不需要？」→ RNN 逐字餵入，順序天然在裡面；注意力對所有字一視同仁，順序要另外給。是相加不是 concat。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8) ×3</span><span class="k">參數</span><span class="badge p">3 × 72</span></div>
+  <div class="body">
+    <h3><span class="n">站 3</span>做出 Q、K、V：同一個 x 乘三個矩陣</h3>
+    <p class="say">同一份輸入 x，分別乘 W_Q、W_K、W_V 三個 (8×8) 矩陣，得到三份 (4, 8)。用讀書會比喻：<b>Q = 我提的問題、K = 每個人名牌上的專長、V = 每個人真正會講的內容</b>。三個 W 各 8×8+8 = 72 顆旋鈕。self-attention 就是「Q、K、V 都從同一句話來」。</p>
+    <div class="fig">
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="輸入 x (4×8) 分別乘 W_Q W_K W_V 得到 Q K V 各 (4×8)">
+<style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}.s{font-family:var(--f-mono);font-size:12px;fill:var(--shape);font-weight:600}</style>
+<rect x="40" y="55" width="70" height="60" rx="4" fill="var(--paper)" stroke="var(--ink)"/>
+<text class="t" x="75" y="80" text-anchor="middle">x</text><text class="s" x="75" y="100" text-anchor="middle">(4, 8)</text>
+<defs><marker id="ar4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="var(--muted)" stroke-width="1.5"/></marker></defs>
+<g stroke="var(--muted)" stroke-width="1.2" fill="none">
+<path d="M110 85 C170 85, 170 35, 230 35" marker-end="url(#ar4)"/>
+<path d="M110 85 L230 85" marker-end="url(#ar4)"/>
+<path d="M110 85 C170 85, 170 135, 230 135" marker-end="url(#ar4)"/>
+</g>
+<g>
+<rect x="240" y="18" width="80" height="34" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"/><text class="t" x="280" y="40" text-anchor="middle">× W_Q</text>
+<rect x="240" y="68" width="80" height="34" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"/><text class="t" x="280" y="90" text-anchor="middle">× W_K</text>
+<rect x="240" y="118" width="80" height="34" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"/><text class="t" x="280" y="140" text-anchor="middle">× W_V</text>
+<text class="m" x="340" y="40">(8×8)</text><text class="m" x="340" y="90">(8×8)</text><text class="m" x="340" y="140">(8×8)</text>
+</g>
+<g stroke="var(--muted)" stroke-width="1.2"><line x1="395" y1="35" x2="440" y2="35" marker-end="url(#ar4)"/><line x1="395" y1="85" x2="440" y2="85" marker-end="url(#ar4)"/><line x1="395" y1="135" x2="440" y2="135" marker-end="url(#ar4)"/></g>
+<g>
+<rect x="450" y="18" width="60" height="34" rx="4" fill="var(--shape-soft)" stroke="var(--shape)"/><text class="t" x="480" y="40" text-anchor="middle">Q</text>
+<rect x="450" y="68" width="60" height="34" rx="4" fill="var(--shape-soft)" stroke="var(--shape)"/><text class="t" x="480" y="90" text-anchor="middle">K</text>
+<rect x="450" y="118" width="60" height="34" rx="4" fill="var(--shape-soft)" stroke="var(--shape)"/><text class="t" x="480" y="140" text-anchor="middle">V</text>
+<text class="s" x="530" y="40">(4, 8) 問題</text><text class="s" x="530" y="90">(4, 8) 名牌專長</text><text class="s" x="530" y="140">(4, 8) 講的內容</text>
+</g>
+</svg></div>
+    <pre><code>Q = x @ W_q;  K = x @ W_k;  V = x @ W_v    <span class="c"># 三個 (4,8)，來自同一個 x → self-attention</span></code></pre>
+    <div class="trap"><b>考點</b>　W_Q、W_K、W_V 是可學參數，Q、K、V 是算出來的中間結果。「cross-attention」是 Q 來自一邊（decoder）、K 和 V 來自另一邊（encoder）。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8)</span><span class="k">參數</span><span class="badge p">0</span></div>
+  <div class="body">
+    <h3><span class="n">站 4</span>縮放點積注意力：比分數、換比例、混內容</h3>
+    <p class="say">① Q·Kᵀ：每個問題對每個名牌算相似度，得 4×4 分數表。② 除以 √d_k：分數壓小，免得 softmax 躺平。③ softmax 沿最後一軸：每一<b>列</b>換成加總 = 1 的比例。④ 乘 V：按比例把大家講的內容混起來。<b>這一站沒有參數</b>，旋鈕都在上一站的 W。</p>
+    <div class="fig">
+<svg viewBox="0 0 720 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="注意力形狀鏈：Q(4×8) 乘 Kᵀ(8×4) 得 4×4，softmax 後仍 4×4，乘 V(4×8) 得 4×8">
+<style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}.s{font-family:var(--f-mono);font-size:12px;fill:var(--shape);font-weight:600}</style>
+<defs><marker id="ar5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="var(--muted)" stroke-width="1.5"/></marker></defs>
+<g>
+<rect x="30" y="50" width="48" height="80" rx="3" fill="var(--shape-soft)" stroke="var(--shape)"/><text class="t" x="54" y="95" text-anchor="middle">Q</text><text class="s" x="54" y="150" text-anchor="middle">(4, 8)</text>
+<text class="t" x="96" y="95" text-anchor="middle">·</text>
+<rect x="112" y="60" width="80" height="48" rx="3" fill="var(--shape-soft)" stroke="var(--shape)"/><text class="t" x="152" y="89" text-anchor="middle">Kᵀ</text><text class="s" x="152" y="150" text-anchor="middle">(8, 4)</text>
+<text class="m" x="105" y="40" text-anchor="middle">8 = 8，能對上</text>
+</g>
+<line x1="200" y1="90" x2="235" y2="90" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar5)"/>
+<text class="m" x="217" y="80" text-anchor="middle">÷√8</text>
+<g>
+<rect x="245" y="66" width="48" height="48" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/>
+<g fill="var(--accent)"><rect x="248" y="69" width="10" height="10"/><rect x="259" y="69" width="10" height="10" fill-opacity=".35"/><rect x="270" y="69" width="10" height="10" fill-opacity=".15"/><rect x="281" y="69" width="10" height="10" fill-opacity=".1"/></g>
+<text class="t" x="269" y="130" text-anchor="middle">分數</text><text class="s" x="269" y="150" text-anchor="middle">(4, 4)</text>
+</g>
+<line x1="300" y1="90" x2="345" y2="90" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar5)"/>
+<text class="m" x="322" y="78" text-anchor="middle">softmax</text><text class="m" x="322" y="108" text-anchor="middle">axis=−1</text>
+<g>
+<rect x="355" y="66" width="48" height="48" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/>
+<text class="m" x="379" y="88" text-anchor="middle">每列</text><text class="m" x="379" y="104" text-anchor="middle">加總 1</text>
+<text class="t" x="379" y="130" text-anchor="middle">比例</text><text class="s" x="379" y="150" text-anchor="middle">(4, 4)</text>
+</g>
+<text class="t" x="420" y="95" text-anchor="middle">·</text>
+<rect x="436" y="50" width="48" height="80" rx="3" fill="var(--shape-soft)" stroke="var(--shape)"/><text class="t" x="460" y="95" text-anchor="middle">V</text><text class="s" x="460" y="150" text-anchor="middle">(4, 8)</text>
+<line x1="492" y1="90" x2="530" y2="90" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar5)"/>
+<rect x="540" y="50" width="48" height="80" rx="3" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.2"/><text class="t" x="564" y="95" text-anchor="middle">out</text><text class="s" x="564" y="150" text-anchor="middle">(4, 8)</text>
+<text class="m" x="620" y="80">= (Q 的 token 數,</text><text class="m" x="620" y="98">   V 的維度)</text>
+<text class="m" x="360" y="190">4 = 4，能對上</text>
+<text class="m" x="30" y="190">形狀鏈：(4,8)(8,4) → (4,4) → (4,4)(4,8) → (4,8)</text>
+</svg></div>
+    <pre><code>def attention(Q, K, V):                          <span class="c"># Q:(L,dk) K:(L,dk) V:(L,dv)</span>
+    scores = Q @ K.T / np.sqrt(Q.shape[-1])      <span class="c"># (L,L)；x ** 0.5 也是開根號</span>
+    w = np.exp(scores)
+    w = w / w.sum(axis=-1, keepdims=True)        <span class="c"># 沿最後一軸，每列加總 1；keepdims 讓 (L,1) 能廣播</span>
+    return w @ V                                  <span class="c"># (L,dv)</span></code></pre>
+    <div class="trap"><b>考點</b>　① 為什麼除 √d_k：點積是 d_k 項相加，d_k 越大原始分數越大 → softmax 進飽和區（S 曲線躺平）→ 梯度≈0。② 症狀對步驟：「比例加總≠1」→ softmax 軸錯（<code>dim=0</code> 應為 <code>-1</code>）；「學不動、比例極端」→ 沒除 √d_k。③ 輸出形狀 = (Q 的列數, V 的行數)，不是 K 的。④ 這裡的 softmax 在模型<b>中間</b>，每層每個 head 一個，不是最後分類的輸出層 softmax。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8)</span><span class="k">參數</span><span class="badge p">288 合計</span></div>
+  <div class="body">
+    <h3><span class="n">站 5</span>多頭：同一句話從幾個角度各打一次分</h3>
+    <p class="say">一個 head 只能學一種關係（例如「主詞對動詞」）。把 d_model = 8 切成 2 個 head，每個 head 用自己的 W 做 d_k = 4 的注意力，各得 (4, 4)，<b>串接</b>回 (4, 8)，再乘一個 W_O (8×8) 混合。參數量：W_Q、W_K、W_V、W_O 各 72，合計 288。</p>
+    <div class="fig">
+<svg viewBox="0 0 720 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="兩個 head 各自算注意力得 (4×4)，串接成 (4×8)，再乘 W_O">
+<style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}.s{font-family:var(--f-mono);font-size:12px;fill:var(--shape);font-weight:600}</style>
+<defs><marker id="ar6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="var(--muted)" stroke-width="1.5"/></marker></defs>
+<rect x="30" y="60" width="60" height="60" rx="4" fill="var(--paper)" stroke="var(--ink)"/><text class="t" x="60" y="86" text-anchor="middle">x</text><text class="s" x="60" y="104" text-anchor="middle">(4, 8)</text>
+<g stroke="var(--muted)" stroke-width="1.2" fill="none"><path d="M90 90 C130 90,130 45,170 45" marker-end="url(#ar6)"/><path d="M90 90 C130 90,130 135,170 135" marker-end="url(#ar6)"/></g>
+<rect x="180" y="22" width="130" height="46" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"/><text class="t" x="245" y="41" text-anchor="middle">head 1</text><text class="m" x="245" y="58" text-anchor="middle">d_k=4 → (4, 4)</text>
+<rect x="180" y="112" width="130" height="46" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"/><text class="t" x="245" y="131" text-anchor="middle">head 2</text><text class="m" x="245" y="148" text-anchor="middle">d_k=4 → (4, 4)</text>
+<g stroke="var(--muted)" stroke-width="1.2" fill="none"><path d="M310 45 C350 45,350 90,390 90"/><path d="M310 135 C350 135,350 90,390 90" marker-end="url(#ar6)"/></g>
+<text class="m" x="350" y="82" text-anchor="middle">concat</text>
+<rect x="400" y="60" width="90" height="60" rx="4" fill="var(--shape-soft)" stroke="var(--shape)"/><text class="t" x="445" y="86" text-anchor="middle">(4, 4)｜(4, 4)</text><text class="s" x="445" y="104" text-anchor="middle">= (4, 8)</text>
+<line x1="490" y1="90" x2="530" y2="90" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar6)"/>
+<rect x="540" y="66" width="70" height="48" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"/><text class="t" x="575" y="86" text-anchor="middle">× W_O</text><text class="m" x="575" y="104" text-anchor="middle">(8×8)</text>
+<line x1="610" y1="90" x2="645" y2="90" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar6)"/>
+<text class="s" x="680" y="95" text-anchor="middle">(4, 8)</text>
+</svg></div>
+    <pre><code>attn = nn.MultiheadAttention(embed_dim=8, num_heads=2, batch_first=True)
+out, w = attn(x, x, x)     <span class="c"># self-attention：三個位置都放 x；out (1,4,8)，w (1,4,4) 是平均後的比例</span></code></pre>
+    <div class="trap"><b>考點</b>　d_k = d_model ÷ h，所以 <code>embed_dim</code> 必須被 <code>num_heads</code> 整除（BERT-base 768÷12 = 64）。多頭是<b>並行</b>不是串行；串接（concat）不是相加。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8)</span><span class="k">參數</span><span class="badge p">16</span></div>
+  <div class="body">
+    <h3><span class="n">站 6</span>Add & Norm：捷徑相加，再拉回同一把尺</h3>
+    <p class="say"><b>Add</b> = 殘差連接，把站 3 之前的 x 直接加到注意力輸出上，跟 ResNet 是同一招：這一站就算學壞了，最差也是「原句原封不動遞過去」，所以能疊 12、24 層不變差。<b>Norm</b> = LayerNorm，把每個 token 那一列 8 個數標準化到均值 0、變異 1，再用兩個可學的縮放／平移（γ、β 各 8 個）調回來，共 16 個參數。</p>
+    <div class="fig">
+<svg viewBox="0 0 720 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="x 經子層得 F(x)，與 x 相加後做 LayerNorm">
+<style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}</style>
+<defs><marker id="ar7" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="var(--muted)" stroke-width="1.5"/></marker></defs>
+<rect x="40" y="55" width="50" height="40" rx="4" fill="var(--paper)" stroke="var(--ink)"/><text class="t" x="65" y="80" text-anchor="middle">x</text>
+<line x1="90" y1="75" x2="180" y2="75" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar7)"/>
+<rect x="190" y="50" width="150" height="50" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"/><text class="t" x="265" y="72" text-anchor="middle">子層（注意力或 FFN）</text><text class="m" x="265" y="90" text-anchor="middle">學 F(x)</text>
+<line x1="340" y1="75" x2="410" y2="75" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar7)"/>
+<path d="M65 55 L65 20 L430 20 L430 58" fill="none" stroke="var(--shape)" stroke-width="2" marker-end="url(#ar7)"/>
+<text class="t" x="250" y="14" text-anchor="middle" fill="var(--shape)">捷徑：x 直接遞到出口</text>
+<circle cx="430" cy="75" r="14" fill="var(--paper)" stroke="var(--ink)"/><text class="t" x="430" y="80" text-anchor="middle">+</text>
+<line x1="444" y1="75" x2="500" y2="75" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar7)"/>
+<text class="m" x="472" y="66" text-anchor="middle">x+F(x)</text>
+<rect x="510" y="55" width="100" height="40" rx="4" fill="var(--shape-soft)" stroke="var(--shape)"/><text class="t" x="560" y="80" text-anchor="middle">LayerNorm</text>
+<line x1="610" y1="75" x2="660" y2="75" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar7)"/>
+<text class="m" x="430" y="120" text-anchor="middle">相加，不是串接、不是跳過</text>
+</svg></div>
+    <pre><code>x = norm1(x + attn_out)     <span class="c"># 殘差 + LayerNorm，形狀 (4,8) 不變</span></code></pre>
+    <div class="trap"><b>考點</b>　LayerNorm 是<b>對一個樣本內的特徵</b>做標準化（一列 8 個數），BatchNorm 是<b>對一個 batch 內同一特徵</b>做（一行 N 個數）。序列長度不一、batch 小 → LayerNorm；CNN 圖像 → BatchNorm。ResNet 的殘差和這裡的 Add 是同一個概念。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8)</span><span class="k">參數</span><span class="badge p">552</span></div>
+  <div class="body">
+    <h3><span class="n">站 7</span>FFN：每個 token 各自過兩層 Dense</h3>
+    <p class="say">注意力負責「字和字之間」，FFN 負責「每個字自己再想一下」。同一組權重，每個 token 獨立過：先放大到 4 倍（8→32，ReLU 或 GELU），再縮回 8。參數：8×32+32 + 32×8+8 = 552。再接一次 Add & Norm，一個 encoder 層就走完了。</p>
+    <pre><code>ffn = nn.Sequential(nn.Linear(8, 32), nn.ReLU(), nn.Linear(32, 8))
+x = norm2(x + ffn(x))       <span class="c"># 第二次殘差 + LayerNorm；出口仍是 (4,8)</span></code></pre>
+    <div class="trap"><b>考點</b>　FFN 是 position-wise：對每個 token 獨立、權重共用，不看其他 token。一個 encoder 層的可學參數 = 注意力 288 + FFN 552 + 兩個 LayerNorm 32 = 872；真實模型的參數大部分在 FFN。</div>
+  </div>
+</div>
+
+<div class="st">
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(K,)</span><span class="k">參數</span><span class="badge p">8×K + K</span></div>
+  <div class="body">
+    <h3><span class="n">站 8</span>輸出頭：從 (4, 8) 到答案</h3>
+    <p class="say">疊完 N 層還是 (4, 8)，最後要看任務：<b>整句分類</b>（意圖辨識）取 [CLS] 那一列或 4 列平均 → (8,) → Dense(K) + softmax；<b>每個字一個標籤</b>（NER）就每列各接 Dense；<b>生成</b>就 decoder 逐字預測下一個 token 的 softmax。</p>
+    <pre><code>layer = nn.TransformerEncoderLayer(d_model=8, nhead=2, dim_feedforward=32, batch_first=True)
+enc   = nn.TransformerEncoder(layer, num_layers=6)
+h = enc(x)                   <span class="c"># (1, 4, 8)，6 層疊完形狀不變</span>
+logits = nn.Linear(8, K)(h[:, 0])   <span class="c"># 取第 0 個 token（[CLS]）做整句分類</span></code></pre>
+    <div class="trap"><b>考點</b>　encoder（BERT）：雙向、看整句、做理解與分類。decoder（GPT）：單向、只看左邊、逐字生成，注意力要加 mask 遮住未來。「微調 BERT 做客服意圖分類」= 凍結或小學習率解凍 encoder，換掉輸出頭——跟 CNN 遷移學習同一個決策表。</div>
+  </div>
+</div>
+
+</div>
+
+<h3 style="margin-top:36px">Transformer 為什麼取代 LSTM（115-1 Q19、114-2 Q21）</h3>
+<div class="tw" style="margin-top:8px"><table>
+<tr><th></th><th>LSTM</th><th>Transformer</th></tr>
+<tr><td>怎麼讀句子</td><td>一個字一個字往後傳，靠 cell state 記住前面</td><td>每個字直接對所有字打分，一步看到整句</td></tr>
+<tr><td>長距離</td><td>越遠越淡（雖比 RNN 好，仍會衰減）</td><td>第 1 個字到第 500 個字，距離都是 1 步</td></tr>
+<tr><td>能否平行</td><td>不能，第 t 步要等 t−1 算完</td><td>整句同時算，GPU 吃得滿</td></tr>
+<tr><td>順序資訊</td><td>天然內建</td><td>要另外加位置編碼</td></tr>
+<tr><td>代價</td><td>計算量隨長度線性</td><td>注意力是 L×L，長度平方</td></tr>
+</table></div>
+
+<!-- ================= PART 3 ================= -->
+<h2 id="cross">兩條線共用的四個考點</h2>
+<p class="lead">這四個在兩邊都出現，考題常跨線出。</p>
+
+<div class="grid2" style="margin-top:16px">
+<details open><summary>1. 梯度消失：同一個病，兩個發病點</summary><div class="a">
+<b>CNN/MLP 版</b>：隱藏層 Sigmoid，斜率 ≤ 0.25，反向傳播逐層連乘 → 前層梯度≈0，「前幾層權重不動」。解法：換 ReLU。<br>
+<b>Transformer 版</b>：不除 √d_k，原始分數太大 → 注意力 softmax 飽和（S 曲線躺平）→ 梯度≈0。解法：不能換掉 softmax（要有它才是比例），改成進 softmax 前除 √d_k。<br>
+<b>共同解法</b>：殘差連接給梯度一條斜率 1 的直達路——ResNet 的捷徑、Transformer 的 Add。</div></details>
+
+<details><summary>2. 參數量：三個公式推遍所有題</summary><div class="a">
+Conv2D：k×k×C_in×C_out + C_out（C_in 看上一層，Pooling 不改）。<br>
+Dense/Linear：in×out + out（in 是 Flatten 後長度，或 d_model）。<br>
+Embedding：V×d_model。<br>
+沒參數的：Pooling、Flatten、Dropout、激活函數、注意力的打分本身（旋鈕在 W_Q/W_K/W_V/W_O）。<br>
+變形題：反推 C_in（先減 bias 再除 k²×C_out）、哪一層最多（VGG16 是 Dense、Transformer 是 FFN）。</div></details>
+
+<details><summary>3. 形狀鏈：三條規則</summary><div class="a">
+矩陣乘法：(m×n)(n×p) = (m×p)，中間要相等。<br>
+Conv 輸出邊長：⌊(n+2p−k)/s⌋+1；same 且 s=1 → 不變；Pool 2×2 → 減半。<br>
+softmax/sum 的 axis：形狀括號從尾巴數，−1 是最後一軸，也就是最後一個中括號在跑；注意力沿 −1 讓每列加總 1；<code>keepdims=True</code> 讓 (L,1) 能和 (L,L) 廣播相除。<br>
+框架差異：Keras (N,H,W,C)、PyTorch (N,C,H,W)；序列都是 (N,L,d_model)（PyTorch 要 <code>batch_first=True</code>）。</div></details>
+
+<details><summary>4. 輸出層與損失、遷移學習：兩張決策表通用</summary><div class="a">
+輸出層：互斥多分類 Softmax+CE；可同時多標籤各自 Sigmoid+BCE；迴歸線性+MSE。PyTorch 的 CE/BCEWithLogits 已含激活，輸出層裸奔。<br>
+遷移學習：資料少＋領域近 → 全凍結換頭；資料多＋領域遠 → 解凍後幾層＋小學習率；大學習率會洗掉預訓練。ImageNet→ResNet50 和 BERT→意圖分類是同一張表。</div></details>
+</div>
+
+<h2 id="quiz">走完自我檢核</h2>
+<p class="lead">先在心裡答完再展開。每題對應上面某一站，答不出就回那一站看圖。</p>
+<div style="margin-top:14px">
+<details><summary>Q1　<code>Conv2D(96, (5,5))</code> 接在輸出 (14,14,48) 的層後面，參數量？</summary><div class="a">5×5×48×96 + 96 = 115,200 + 96 = <b>115,296</b>。C_in = 48 是上一層的通道數。（站 2）</div></details>
+<details><summary>Q2　輸入 28×28，<code>Conv2D(32,(3,3),padding='valid')</code> → <code>MaxPooling2D(2)</code>，輸出形狀？</summary><div class="a">valid：28−3+1 = 26 → (26,26,32)；Pool 減半 → <b>(13,13,32)</b>。參數量與這兩個形狀無關，仍是 3×3×1×32+32 = 320（灰階 C_in=1）。（站 2b、4）</div></details>
+<details><summary>Q3　PyTorch 模型 <code>forward</code> 最後寫了 <code>F.softmax(self.fc(x), dim=1)</code>，損失用 <code>nn.CrossEntropyLoss</code>。問題？</summary><div class="a">雙重 softmax。CE 內含 softmax，再做一次會把比例再壓一次，梯度變小、訓練變慢。改回傳 <code>self.fc(x)</code>。（站 7）</div></details>
+<details><summary>Q4　Q (6×32)、K (10×32)、V (10×48)，注意力輸出形狀？softmax 沿哪個軸？</summary><div class="a">(6×32)(32×10) = (6,10) → softmax axis=−1 讓每列 10 個加總 1 → (6,10)(10×48) = <b>(6, 48)</b>。輸出 = (Q 的 token 數, V 的維度)。（Transformer 站 4）</div></details>
+<details><summary>Q5　把 d_k 從 64 改成 1024，其他不變，忘記除 √d_k 會怎樣？</summary><div class="a">點積是 1024 項相加，原始分數變大 → softmax 進飽和 → 比例接近 one-hot → 梯度≈0 → 學不動。這跟「隱藏層全 Sigmoid」是同一種梯度消失，但發病在注意力中間的 softmax，解法是除 √d_k 而非換激活。（共用考點 1）</div></details>
+<details><summary>Q6　<code>nn.MultiheadAttention(embed_dim=100, num_heads=8)</code> 會怎樣？</summary><div class="a">報錯。100 不能被 8 整除，每個 head 的 d_k = embed_dim ÷ num_heads 必須是整數。改 96 或 heads=4/5/10。（Transformer 站 5）</div></details>
+<details><summary>Q7　ResNet 的捷徑和 Transformer 的 Add & Norm 裡的 Add，哪裡一樣？</summary><div class="a">都是把區塊輸入 x 直接<b>相加</b>到區塊輸出，區塊只需學殘差 F(x)；F(x)→0 就是恆等映射，所以加深不會變差，梯度也多一條斜率 1 的路。（CNN 經典模型表、Transformer 站 6）</div></details>
+</div>
+
+<p class="note" style="margin-top:40px">能力碼：主要 L23203 深度學習原理與框架；形狀鏈與矩陣乘法 L23102；輸出層與損失 L23202；遷移學習決策 L23302。數字例子為教學設定，考古題引用：114-2 Q21、115-1 Q18–Q20、Q40，115-2 樣題 Q49。</p>
+</div>
+</body></html>
