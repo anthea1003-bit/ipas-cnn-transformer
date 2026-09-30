@@ -193,7 +193,7 @@ nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, padding=1)             
     <h3><span class="n">站 2b</span>輸出多大：padding 與 stride</h3>
     <p class="say">手電筒掃到邊緣時，最後幾格照不滿。<b>same</b> = 先在外圍補一圈 0，讓輸出長寬跟輸入一樣；<b>valid</b> = 不補，輸出會縮小。<b>stride</b> = 每次跳幾格，stride 2 就直接把長寬減半。</p>
     <div class="fig">
-<svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="valid 卷積 5×5 輸入得 3×3 輸出；same 補零後輸出 5×5">
+<svg viewBox="0 0 720 214" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="valid 卷積 5×5 輸入得 3×3 輸出；same 補零後輸出 5×5">
 <style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}.s{font-family:var(--f-mono);font-size:12px;fill:var(--shape);font-weight:600}</style>
 <g transform="translate(40,30)">
 <g fill="var(--paper)" stroke="var(--line)">
@@ -232,7 +232,7 @@ nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, padding=1)             
 <text class="t" x="0" y="106">same, s=1 → out = n</text>
 <text class="t" x="0" y="126">same, s=2 → out = n/2</text>
 <text class="t" x="0" y="146">valid, s=1 → out = n−k+1</text>
-<text class="m" x="0" y="172">k=3 要 same，p=1（PyTorch padding=1）</text>
+<text class="m" x="0" y="172">k=3 且 same → padding=1</text>
 </g>
 </svg></div>
     <div class="trap"><b>考點</b>　「輸入 28×28，3×3 核、valid、stride 1，輸出多大？」→ 26×26。「同一層改 stride 2」→ 13×13。padding/stride 只改<b>形狀</b>，不改<b>參數量</b>。</div>
@@ -245,7 +245,7 @@ nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, padding=1)             
     <h3><span class="n">站 3</span>ReLU：負的歸零</h3>
     <p class="say">卷積算完的每個數，負的變 0、正的照過。<b>沒有它，兩層卷積疊起來還是一個線性運算</b>，疊再多層也等於一層——是非線性讓「深」有意義。</p>
     <div class="fig">
-<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ReLU 折線與 Sigmoid S 曲線並排，ReLU 正區斜率 1，Sigmoid 兩端平坦">
+<svg viewBox="0 0 720 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ReLU 折線與 Sigmoid S 曲線並排，ReLU 正區斜率 1，Sigmoid 兩端平坦">
 <style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}</style>
 <g transform="translate(60,20)">
 <line x1="0" y1="110" x2="220" y2="110" stroke="var(--line)"/><line x1="110" y1="0" x2="110" y2="130" stroke="var(--line)"/>
@@ -272,7 +272,7 @@ x = F.relu(self.conv1(x))                <span class="c"># PyTorch 另外呼叫<
     <h3><span class="n">站 4</span>MaxPooling：每 2×2 只留最大</h3>
     <p class="say">把特徵圖切成 2×2 的小格，每格只留最大值。長寬各減半、<b>通道數不變、沒有任何參數</b>。目的：縮小計算量，並且對小位移不敏感（瑕疵往右移一格，池化後看起來一樣）。</p>
     <div class="fig">
-<svg viewBox="0 0 720 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="4×4 特徵圖經 2×2 最大池化得 2×2">
+<svg viewBox="0 0 720 158" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="4×4 特徵圖經 2×2 最大池化得 2×2">
 <style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:13px;fill:var(--ink)}.s{font-family:var(--f-mono);font-size:12px;fill:var(--shape);font-weight:600}</style>
 <g transform="translate(120,20)">
 <g fill="var(--paper)" stroke="var(--line)">
@@ -337,7 +337,7 @@ x = x.flatten(1)          <span class="c"># PyTorch；從第 1 軸開始攤平�
     <h3><span class="n">站 7</span>Dense + Softmax：投票</h3>
     <p class="say">8,192 個數每一個都連到 10 個輸出，一條連線一顆旋鈕：8,192 × 10 = 81,920，再加 10 個 bias = <b>81,930</b>。Softmax 把 10 個分數換成加總 = 1 的比例。</p>
     <div class="fig">
-<svg viewBox="0 0 720 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flatten 後 8192 個節點全連接到 10 個輸出，再經 softmax 成為機率">
+<svg viewBox="0 0 720 205" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flatten 後 8192 個節點全連接到 10 個輸出，再經 softmax 成為機率">
 <style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}.s{font-family:var(--f-mono);font-size:12px;fill:var(--shape);font-weight:600}</style>
 <g>
 <rect x="60" y="20" width="26" height="150" rx="3" fill="var(--shape-soft)" stroke="var(--shape)"/>
@@ -433,7 +433,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)</code></pre>
 <h3 style="margin-top:28px">CNN 線上的三個經典模型，考試只問一句</h3>
 <div class="tw" style="margin-top:8px"><table>
 <tr><th>模型</th><th>一句話</th><th>考什麼</th></tr>
-<tr><td>VGG16</td><td>全部 3×3 卷積一路疊，最後三層 Dense</td><td>參數集中在 Dense（約 1.2 億的 1 億在 FC）；小核疊兩層 = 5×5 感受野但參數更少</td></tr>
+<tr><td>VGG16</td><td>全部 3×3 卷積一路疊，最後三層 Dense</td><td>總參數約 1.38 億，其中約 1.24 億在全連接層；小核疊兩層 = 5×5 感受野但參數更少</td></tr>
 <tr><td>ResNet</td><td>每個區塊多一條 x 直達出口的捷徑，區塊只學殘差 F(x) = H(x) − x</td><td>捷徑是<b>相加</b>不是跳過；F(x)→0 比學恆等容易，所以加深不會變差；梯度多一條斜率 1 的路</td></tr>
 <tr><td>遷移學習</td><td>拿 ImageNet 練好的權重當起點</td><td>資料少＋領域近 → 全凍結只換頭；資料多＋領域遠 → 解凍後幾個區塊、小學習率；灰階 repeat 成 3 通道</td></tr>
 </table></div>
@@ -546,9 +546,9 @@ x = emb(torch.tensor(ids))               <span class="c"># (4, 8)：每個 token
 <rect x="436" y="50" width="48" height="80" rx="3" fill="var(--shape-soft)" stroke="var(--shape)"/><text class="t" x="460" y="95" text-anchor="middle">V</text><text class="s" x="460" y="150" text-anchor="middle">(4, 8)</text>
 <line x1="492" y1="90" x2="530" y2="90" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar5)"/>
 <rect x="540" y="50" width="48" height="80" rx="3" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.2"/><text class="t" x="564" y="95" text-anchor="middle">out</text><text class="s" x="564" y="150" text-anchor="middle">(4, 8)</text>
-<text class="m" x="620" y="80">= (Q 的 token 數,</text><text class="m" x="620" y="98">   V 的維度)</text>
-<text class="m" x="360" y="190">4 = 4，能對上</text>
-<text class="m" x="30" y="190">形狀鏈：(4,8)(8,4) → (4,4) → (4,4)(4,8) → (4,8)</text>
+<text class="m" x="564" y="170" text-anchor="middle">列跟 Q、行跟 V</text>
+<text class="m" x="420" y="40" text-anchor="middle">4 = 4，能對上</text>
+<text class="m" x="30" y="198">形狀鏈：(4,8)(8,4) → (4,4) → (4,4)(4,8) → (4,8)</text>
 </svg></div>
     <pre><code>def attention(Q, K, V):                          <span class="c"># Q:(L,dk) K:(L,dk) V:(L,dv)</span>
     scores = Q @ K.T / np.sqrt(Q.shape[-1])      <span class="c"># (L,L)；x ** 0.5 也是開根號</span>
@@ -600,7 +600,7 @@ out, w = attn(x, x, x)     <span class="c"># self-attention：三個位置都放
 <rect x="190" y="50" width="150" height="50" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"/><text class="t" x="265" y="72" text-anchor="middle">子層（注意力或 FFN）</text><text class="m" x="265" y="90" text-anchor="middle">學 F(x)</text>
 <line x1="340" y1="75" x2="410" y2="75" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar7)"/>
 <path d="M65 55 L65 20 L430 20 L430 58" fill="none" stroke="var(--shape)" stroke-width="2" marker-end="url(#ar7)"/>
-<text class="t" x="250" y="14" text-anchor="middle" fill="var(--shape)">捷徑：x 直接遞到出口</text>
+<text class="t" x="250" y="16" text-anchor="middle" fill="var(--shape)">捷徑：x 直接遞到出口</text>
 <circle cx="430" cy="75" r="14" fill="var(--paper)" stroke="var(--ink)"/><text class="t" x="430" y="80" text-anchor="middle">+</text>
 <line x1="444" y1="75" x2="500" y2="75" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar7)"/>
 <text class="m" x="472" y="66" text-anchor="middle">x+F(x)</text>
