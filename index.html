@@ -82,20 +82,11 @@ details .a{margin-top:8px;font-size:.93rem;border-top:1px dashed var(--line);pad
 .chk .b{background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:10px 12px;font-size:.92rem}
 .chk .b b{color:var(--shape);font-family:var(--f-mono);font-size:.8rem;display:block;margin-bottom:4px}
 a{color:var(--accent)}
-/* 2026-10-05: scope-only wrappers; colors follow the existing theme. */
-.scope-out{background:var(--bg);color:var(--ink);border:1px solid var(--muted);margin-block:8px}
-.scope-out>summary{line-height:1.65;overflow-wrap:anywhere}
-.scope-label{display:block;width:fit-content;background:var(--ink);color:var(--bg);padding:2px 8px;border-radius:4px;font-size:.8rem;margin:0 0 5px}
-.scope-content{display:flex;flex-direction:column;gap:12px;padding-top:12px;min-width:0}
-.scope-note{color:var(--ink);background:var(--bg);font-size:.82rem;line-height:1.6}
-.scope-banner{color:var(--ink);background:var(--bg);border-left:4px solid var(--muted);padding:10px 12px;margin-bottom:16px;font-size:.9rem}
-
 @media (prefers-reduced-motion:no-preference){details[open] .a{animation:fade .18s ease-out}}
 @keyframes fade{from{opacity:.4}to{opacity:1}}
 </style></head><body>
 
 <div class="wrap">
-<p class="scope-banner" data-scope-added="true">2026-10-05 依讀書計畫 v4 範圍收斂：灰底收合段落為範圍外，考前不讀。</p>
 <div class="eyebrow">iPAS AI 應用規劃師中級 · 科目三 · L23203 深度學習原理與框架</div>
 <h1 style="margin-top:8px">CNN 與 Transformer 全程圖解</h1>
 <p class="lead">兩條線各走一遍：每一站只講四件事——它在做什麼、進出形狀、參數量、對應的一行程式。深度只到考試會問的地方。所有例子都用同一組小數字，方便手算對照。</p>
@@ -103,7 +94,7 @@ a{color:var(--accent)}
 <div class="chk">
   <div class="b"><b>怎麼讀</b>左邊淺藍是<strong>形狀</strong>（那一站的輸出長什麼樣），橘色是<strong>參數量</strong>（那一站有幾顆可學的旋鈕）。沒有橘色 = 這一站沒有參數。</div>
   <div class="b"><b>推，不背</b>每一站的參數量都能從圖推出來。考試會變形（問 C_in、問輸出形狀、問哪一層參數最多），懂圖的人每種都推得出。</div>
-  <div class="b"><b>考點來源</b>114-2、115-1 正式公告試題；標『範圍外』的段落來自非官方模擬題（115-2 模擬 49、補充題組）</div>
+  <div class="b"><b>考點來源</b>114-2、115-1 考古題與 115-2 樣題實際出現過的切角，標在每站的黃色框。</div>
 </div>
 
 <!-- ================= PART 1 CNN ================= -->
@@ -128,7 +119,7 @@ a{color:var(--accent)}
   <div class="rail"><span class="k">輸出形狀</span><span class="badge">(32, 32, 3)</span><span class="k">參數</span><span class="badge p">0</span></div>
   <div class="body">
     <h3><span class="n">站 1</span>輸入影像</h3>
-    <p class="say">一張圖不是一個平面，是 <b>3 層疊在一起</b>的平面（R、G、B 各一層）。「通道」這個詞就是「幾層」。灰階 X 光只有 1 層，所以要接 ImageNet 模型時得 repeat 成 3 層。<small class="scope-note" data-scope-added="true">（範圍外：非官方題）</small></p>
+    <p class="say">一張圖不是一個平面，是 <b>3 層疊在一起</b>的平面（R、G、B 各一層）。「通道」這個詞就是「幾層」。灰階 X 光只有 1 層，所以要接 ImageNet 模型時得 repeat 成 3 層。</p>
     <pre><code><span class="c"># Keras 通道在最後 (H, W, C)；PyTorch 通道在前 (C, H, W)</span>
 input_shape=(32, 32, 3)          <span class="c"># Keras</span>
 x = torch.randn(N, 3, 32, 32)    <span class="c"># PyTorch，N 是批次大小</span></code></pre>
@@ -200,9 +191,7 @@ nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, padding=1)             
   <div class="rail"><span class="k">輸出形狀</span><span class="badge">同輸入</span><span class="k">參數</span><span class="badge p">0</span></div>
   <div class="body">
     <h3><span class="n">站 2b</span>輸出多大：padding 與 stride</h3>
-    <p class="say">手電筒掃到邊緣時，最後幾格照不滿。<b>same</b> = 先在外圍補一圈 0，讓輸出長寬跟輸入一樣；<b>valid</b> = 不補，輸出會縮小。</p>
-<p class="scope-note" data-scope-added="true">same → 長寬不變、valid → 縮小、Pool 2×2 → 減半</p>
-<details class="scope-out" id="cnn-2b-scope"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：輸出邊長公式；輸出多大：padding 與 stride</summary><div class="scope-content"><p class="say"><b>stride</b> = 每次跳幾格，stride 2 就直接把長寬減半。</p>
+    <p class="say">手電筒掃到邊緣時，最後幾格照不滿。<b>same</b> = 先在外圍補一圈 0，讓輸出長寬跟輸入一樣；<b>valid</b> = 不補，輸出會縮小。<b>stride</b> = 每次跳幾格，stride 2 就直接把長寬減半。</p>
     <div class="fig">
 <svg viewBox="0 0 720 214" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="valid 卷積 5×5 輸入得 3×3 輸出；same 補零後輸出 5×5">
 <style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}.s{font-family:var(--f-mono);font-size:12px;fill:var(--shape);font-weight:600}</style>
@@ -246,7 +235,7 @@ nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, padding=1)             
 <text class="m" x="0" y="172">k=3 且 same → padding=1</text>
 </g>
 </svg></div>
-    <div class="trap"><b>考點</b>　「輸入 28×28，3×3 核、valid、stride 1，輸出多大？」→ 26×26。「同一層改 stride 2」→ 13×13。padding/stride 只改<b>形狀</b>，不改<b>參數量</b>。</div></div></details>
+    <div class="trap"><b>考點</b>　「輸入 28×28，3×3 核、valid、stride 1，輸出多大？」→ 26×26。「同一層改 stride 2」→ 13×13。padding/stride 只改<b>形狀</b>，不改<b>參數量</b>。</div>
   </div>
 </div>
 
@@ -444,9 +433,9 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)</code></pre>
 <h3 style="margin-top:28px">CNN 線上的三個經典模型，考試只問一句</h3>
 <div class="tw" style="margin-top:8px"><table>
 <tr><th>模型</th><th>一句話</th><th>考什麼</th></tr>
-<tr><td>VGG16</td><td>全部 3×3 卷積一路疊，最後三層 Dense<span class="scope-note" data-scope-added="true">；13 層卷積＋3 層全連接</span></td><td>總參數約 1.38 億，其中約 1.24 億在全連接層；小核疊兩層 = 5×5 感受野但參數更少<span class="scope-note" data-scope-added="true">；卷積層運算量（FLOPs）最多、全連接層參數最多；看 model.summary() 判讀（114-2 Q42–44）</span></td></tr>
+<tr><td>VGG16</td><td>全部 3×3 卷積一路疊，最後三層 Dense</td><td>總參數約 1.38 億，其中約 1.24 億在全連接層；小核疊兩層 = 5×5 感受野但參數更少</td></tr>
 <tr><td>ResNet</td><td>每個區塊多一條 x 直達出口的捷徑，區塊只學殘差 F(x) = H(x) − x</td><td>捷徑是<b>相加</b>不是跳過；F(x)→0 比學恆等容易，所以加深不會變差；梯度多一條斜率 1 的路</td></tr>
-<tr><td>遷移學習</td><td>拿 ImageNet 練好的權重當起點</td><td>資料少＋領域近 → 全凍結只換頭；資料多＋領域遠 → 解凍後幾個區塊、小學習率；灰階 repeat 成 3 通道<small class="scope-note" data-scope-added="true">（範圍外：非官方題）</small></td></tr>
+<tr><td>遷移學習</td><td>拿 ImageNet 練好的權重當起點</td><td>資料少＋領域近 → 全凍結只換頭；資料多＋領域遠 → 解凍後幾個區塊、小學習率；灰階 repeat 成 3 通道</td></tr>
 </table></div>
 
 <!-- ================= PART 2 TRANSFORMER ================= -->
@@ -463,7 +452,6 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)</code></pre>
   <div class="b"><div class="t">Add & Norm</div><div class="s">(4, 8)</div><div class="q">16</div></div>
   <div class="b"><div class="t">輸出頭</div><div class="s">(K,)</div><div class="q">8×K+K</div></div>
 </div>
-<p class="scope-note" data-scope-added="true">Transformer 的參數量數字為範圍外，僅供理解</p>
 <p class="note" style="margin-top:8px">形狀從頭到尾都是 (L, d_model) = (4, 8)。這是 Transformer 和 CNN 最大的手感差異：CNN 一路縮長寬、加通道；Transformer 每一站進出形狀不變，所以可以無限疊。</p>
 
 <div class="line">
@@ -491,10 +479,10 @@ x = emb(torch.tensor(ids))               <span class="c"># (4, 8)：每個 token
 </div>
 
 <div class="st">
-  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8) ×3</span><span class="k">參數</span><span class="badge p">3 × 72</span><small class="scope-note" data-scope-added="true">（參數量計算範圍外）</small></div>
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8) ×3</span><span class="k">參數</span><span class="badge p">3 × 72</span></div>
   <div class="body">
     <h3><span class="n">站 3</span>做出 Q、K、V：同一個 x 乘三個矩陣</h3>
-    <p class="say">同一份輸入 x，分別乘 W_Q、W_K、W_V 三個 (8×8) 矩陣，得到三份 (4, 8)。用讀書會比喻：<b>Q = 我提的問題、K = 每個人名牌上的專長、V = 每個人真正會講的內容</b>。三個 W 各 8×8+8 = 72 顆旋鈕。<small class="scope-note" data-scope-added="true">（參數量計算範圍外）</small>self-attention 就是「Q、K、V 都從同一句話來」。</p>
+    <p class="say">同一份輸入 x，分別乘 W_Q、W_K、W_V 三個 (8×8) 矩陣，得到三份 (4, 8)。用讀書會比喻：<b>Q = 我提的問題、K = 每個人名牌上的專長、V = 每個人真正會講的內容</b>。三個 W 各 8×8+8 = 72 顆旋鈕。self-attention 就是「Q、K、V 都從同一句話來」。</p>
     <div class="fig">
 <svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="輸入 x (4×8) 分別乘 W_Q W_K W_V 得到 Q K V 各 (4×8)">
 <style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}.s{font-family:var(--f-mono);font-size:12px;fill:var(--shape);font-weight:600}</style>
@@ -520,13 +508,12 @@ x = emb(torch.tensor(ids))               <span class="c"># (4, 8)：每個 token
 <text class="s" x="530" y="40">(4, 8) 問題</text><text class="s" x="530" y="90">(4, 8) 名牌專長</text><text class="s" x="530" y="140">(4, 8) 講的內容</text>
 </g>
 </svg></div>
-    <details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：做出 Q、K、V：同一個 x 乘三個矩陣：程式碼</summary><div class="scope-content"><pre><code>Q = x @ W_q;  K = x @ W_k;  V = x @ W_v    <span class="c"># 三個 (4,8)，來自同一個 x → self-attention</span></code></pre></div></details>
+    <pre><code>Q = x @ W_q;  K = x @ W_k;  V = x @ W_v    <span class="c"># 三個 (4,8)，來自同一個 x → self-attention</span></code></pre>
     <div class="trap"><b>考點</b>　W_Q、W_K、W_V 是可學參數，Q、K、V 是算出來的中間結果。「cross-attention」是 Q 來自一邊（decoder）、K 和 V 來自另一邊（encoder）。</div>
   </div>
 </div>
 
-<p class="scope-note" data-scope-added="true">Q 對每個 K 打分 → 換成比例 → 按比例混合 V。考試只考到這個概念。</p>
-<details class="scope-out" id="tf-station-4-scope"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：站 4 縮放點積注意力：比分數、換比例、混內容</summary><div class="scope-content"><div class="st">
+<div class="st">
   <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8)</span><span class="k">參數</span><span class="badge p">0</span></div>
   <div class="body">
     <h3><span class="n">站 4</span>縮放點積注意力：比分數、換比例、混內容</h3>
@@ -570,13 +557,13 @@ x = emb(torch.tensor(ids))               <span class="c"># (4, 8)：每個 token
     return w @ V                                  <span class="c"># (L,dv)</span></code></pre>
     <div class="trap"><b>考點</b>　① 為什麼除 √d_k：點積是 d_k 項相加，d_k 越大原始分數越大 → softmax 進飽和區（S 曲線躺平）→ 梯度≈0。② 症狀對步驟：「比例加總≠1」→ softmax 軸錯（<code>dim=0</code> 應為 <code>-1</code>）；「學不動、比例極端」→ 沒除 √d_k。③ 輸出形狀 = (Q 的列數, V 的行數)，不是 K 的。④ 這裡的 softmax 在模型<b>中間</b>，每層每個 head 一個，不是最後分類的輸出層 softmax。</div>
   </div>
-</div></div></details>
+</div>
 
 <div class="st">
-  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8)</span><span class="k">參數</span><details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：多頭：參數量 288</summary><div class="scope-content"><span class="badge p">288 合計</span></div></details></div>
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8)</span><span class="k">參數</span><span class="badge p">288 合計</span></div>
   <div class="body">
-    <h3><span class="n">站 5</span>多頭：同一句話從幾個角度各打一次分</h3><p class="scope-note" data-scope-added="true">多頭＝同一句話從不同表示子空間各看一次，並行、串接</p>
-    <p class="say">一個 head 只能學一種關係（例如「主詞對動詞」）。把 d_model = 8 切成 2 個 head，每個 head 用自己的 W 做 d_k = 4 的注意力，各得 (4, 4)，<b>串接</b>回 (4, 8)，再乘一個 W_O (8×8) 混合。</p><details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：多頭：參數量 288</summary><div class="scope-content"><p>參數量：W_Q、W_K、W_V、W_O 各 72，合計 288。</p></div></details>
+    <h3><span class="n">站 5</span>多頭：同一句話從幾個角度各打一次分</h3>
+    <p class="say">一個 head 只能學一種關係（例如「主詞對動詞」）。把 d_model = 8 切成 2 個 head，每個 head 用自己的 W 做 d_k = 4 的注意力，各得 (4, 4)，<b>串接</b>回 (4, 8)，再乘一個 W_O (8×8) 混合。參數量：W_Q、W_K、W_V、W_O 各 72，合計 288。</p>
     <div class="fig">
 <svg viewBox="0 0 720 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="兩個 head 各自算注意力得 (4×4)，串接成 (4×8)，再乘 W_O">
 <style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}.s{font-family:var(--f-mono);font-size:12px;fill:var(--shape);font-weight:600}</style>
@@ -593,17 +580,17 @@ x = emb(torch.tensor(ids))               <span class="c"># (4, 8)：每個 token
 <line x1="610" y1="90" x2="645" y2="90" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar6)"/>
 <text class="s" x="680" y="95" text-anchor="middle">(4, 8)</text>
 </svg></div>
-    <details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：多頭：同一句話從幾個角度各打一次分：程式碼</summary><div class="scope-content"><pre><code>attn = nn.MultiheadAttention(embed_dim=8, num_heads=2, batch_first=True)
-out, w = attn(x, x, x)     <span class="c"># self-attention：三個位置都放 x；out (1,4,8)，w (1,4,4) 是平均後的比例</span></code></pre></div></details>
-    <div class="trap"><b>考點</b>　<details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：考點：embed_dim 必須被 num_heads 整除</summary><div class="scope-content">d_k = d_model ÷ h，所以 <code>embed_dim</code> 必須被 <code>num_heads</code> 整除（BERT-base 768÷12 = 64）。</div></details>多頭是<b>並行</b>不是串行；串接（concat）不是相加。</div>
+    <pre><code>attn = nn.MultiheadAttention(embed_dim=8, num_heads=2, batch_first=True)
+out, w = attn(x, x, x)     <span class="c"># self-attention：三個位置都放 x；out (1,4,8)，w (1,4,4) 是平均後的比例</span></code></pre>
+    <div class="trap"><b>考點</b>　d_k = d_model ÷ h，所以 <code>embed_dim</code> 必須被 <code>num_heads</code> 整除（BERT-base 768÷12 = 64）。多頭是<b>並行</b>不是串行；串接（concat）不是相加。</div>
   </div>
 </div>
 
 <div class="st">
-  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8)</span><span class="k">參數</span><span class="badge p">16</span><small class="scope-note" data-scope-added="true">（參數量計算範圍外）</small></div>
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8)</span><span class="k">參數</span><span class="badge p">16</span></div>
   <div class="body">
     <h3><span class="n">站 6</span>Add & Norm：捷徑相加，再拉回同一把尺</h3>
-    <p class="say"><b>Add</b> = 殘差連接，把站 3 之前的 x 直接加到注意力輸出上，跟 ResNet 是同一招：這一站就算學壞了，最差也是「原句原封不動遞過去」，所以能疊 12、24 層不變差。<b>Norm</b> = LayerNorm，把每個 token 那一列 8 個數標準化到均值 0、變異 1，再用兩個可學的縮放／平移（γ、β 各 8 個）調回來，共 16 個參數。<small class="scope-note" data-scope-added="true">（參數量計算範圍外）</small></p>
+    <p class="say"><b>Add</b> = 殘差連接，把站 3 之前的 x 直接加到注意力輸出上，跟 ResNet 是同一招：這一站就算學壞了，最差也是「原句原封不動遞過去」，所以能疊 12、24 層不變差。<b>Norm</b> = LayerNorm，把每個 token 那一列 8 個數標準化到均值 0、變異 1，再用兩個可學的縮放／平移（γ、β 各 8 個）調回來，共 16 個參數。</p>
     <div class="fig">
 <svg viewBox="0 0 720 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="x 經子層得 F(x)，與 x 相加後做 LayerNorm">
 <style>.t{font-family:var(--f-body);font-size:13px;fill:var(--ink)}.m{font-family:var(--f-mono);font-size:12px;fill:var(--muted)}</style>
@@ -621,19 +608,19 @@ out, w = attn(x, x, x)     <span class="c"># self-attention：三個位置都放
 <line x1="610" y1="75" x2="660" y2="75" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#ar7)"/>
 <text class="m" x="430" y="120" text-anchor="middle">相加，不是串接、不是跳過</text>
 </svg></div>
-    <details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：Add & Norm：捷徑相加，再拉回同一把尺：程式碼</summary><div class="scope-content"><pre><code>x = norm1(x + attn_out)     <span class="c"># 殘差 + LayerNorm，形狀 (4,8) 不變</span></code></pre></div></details>
+    <pre><code>x = norm1(x + attn_out)     <span class="c"># 殘差 + LayerNorm，形狀 (4,8) 不變</span></code></pre>
     <div class="trap"><b>考點</b>　LayerNorm 是<b>對一個樣本內的特徵</b>做標準化（一列 8 個數），BatchNorm 是<b>對一個 batch 內同一特徵</b>做（一行 N 個數）。序列長度不一、batch 小 → LayerNorm；CNN 圖像 → BatchNorm。ResNet 的殘差和這裡的 Add 是同一個概念。</div>
   </div>
 </div>
 
 <div class="st">
-  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8)</span><span class="k">參數</span><span class="badge p">552</span><small class="scope-note" data-scope-added="true">（參數量計算範圍外）</small></div>
+  <div class="rail"><span class="k">輸出形狀</span><span class="badge">(4, 8)</span><span class="k">參數</span><span class="badge p">552</span></div>
   <div class="body">
     <h3><span class="n">站 7</span>FFN：每個 token 各自過兩層 Dense</h3>
-    <p class="say">注意力負責「字和字之間」，FFN 負責「每個字自己再想一下」。同一組權重，每個 token 獨立過：先放大到 4 倍（8→32，ReLU 或 GELU），再縮回 8。參數：8×32+32 + 32×8+8 = 552。<small class="scope-note" data-scope-added="true">（參數量計算範圍外）</small>再接一次 Add & Norm，一個 encoder 層就走完了。</p>
-    <details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：FFN：每個 token 各自過兩層 Dense：程式碼</summary><div class="scope-content"><pre><code>ffn = nn.Sequential(nn.Linear(8, 32), nn.ReLU(), nn.Linear(32, 8))
-x = norm2(x + ffn(x))       <span class="c"># 第二次殘差 + LayerNorm；出口仍是 (4,8)</span></code></pre></div></details>
-    <div class="trap"><b>考點</b>　FFN 是 position-wise：對每個 token 獨立、權重共用，不看其他 token。一個 encoder 層的可學參數 = 注意力 288 + FFN 552 + 兩個 LayerNorm 32 = 872；真實模型的參數大部分在 FFN。<small class="scope-note" data-scope-added="true">（參數量計算範圍外）</small></div>
+    <p class="say">注意力負責「字和字之間」，FFN 負責「每個字自己再想一下」。同一組權重，每個 token 獨立過：先放大到 4 倍（8→32，ReLU 或 GELU），再縮回 8。參數：8×32+32 + 32×8+8 = 552。再接一次 Add & Norm，一個 encoder 層就走完了。</p>
+    <pre><code>ffn = nn.Sequential(nn.Linear(8, 32), nn.ReLU(), nn.Linear(32, 8))
+x = norm2(x + ffn(x))       <span class="c"># 第二次殘差 + LayerNorm；出口仍是 (4,8)</span></code></pre>
+    <div class="trap"><b>考點</b>　FFN 是 position-wise：對每個 token 獨立、權重共用，不看其他 token。一個 encoder 層的可學參數 = 注意力 288 + FFN 552 + 兩個 LayerNorm 32 = 872；真實模型的參數大部分在 FFN。</div>
   </div>
 </div>
 
@@ -641,11 +628,11 @@ x = norm2(x + ffn(x))       <span class="c"># 第二次殘差 + LayerNorm；出�
   <div class="rail"><span class="k">輸出形狀</span><span class="badge">(K,)</span><span class="k">參數</span><span class="badge p">8×K + K</span></div>
   <div class="body">
     <h3><span class="n">站 8</span>輸出頭：從 (4, 8) 到答案</h3>
-    <div class="say">疊完 N 層還是 (4, 8)，最後要看任務：<details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：輸出頭：整句分類 [CLS]</summary><div class="scope-content"><b>整句分類</b>（意圖辨識）取 [CLS] 那一列或 4 列平均 → (8,) → Dense(K) + softmax；</div></details><b>每個字一個標籤</b>（NER）就每列各接 Dense；<b>生成</b>就 decoder 逐字預測下一個 token 的 softmax。</div>
-    <details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：輸出頭：TransformerEncoderLayer 與 [CLS]：程式碼</summary><div class="scope-content"><pre><code>layer = nn.TransformerEncoderLayer(d_model=8, nhead=2, dim_feedforward=32, batch_first=True)
+    <p class="say">疊完 N 層還是 (4, 8)，最後要看任務：<b>整句分類</b>（意圖辨識）取 [CLS] 那一列或 4 列平均 → (8,) → Dense(K) + softmax；<b>每個字一個標籤</b>（NER）就每列各接 Dense；<b>生成</b>就 decoder 逐字預測下一個 token 的 softmax。</p>
+    <pre><code>layer = nn.TransformerEncoderLayer(d_model=8, nhead=2, dim_feedforward=32, batch_first=True)
 enc   = nn.TransformerEncoder(layer, num_layers=6)
 h = enc(x)                   <span class="c"># (1, 4, 8)，6 層疊完形狀不變</span>
-logits = nn.Linear(8, K)(h[:, 0])   <span class="c"># 取第 0 個 token（[CLS]）做整句分類</span></code></pre></div></details>
+logits = nn.Linear(8, K)(h[:, 0])   <span class="c"># 取第 0 個 token（[CLS]）做整句分類</span></code></pre>
     <div class="trap"><b>考點</b>　encoder（BERT）：雙向、看整句、做理解與分類。decoder（GPT）：單向、只看左邊、逐字生成，注意力要加 mask 遮住未來。「微調 BERT 做客服意圖分類」= 凍結或小學習率解凍 encoder，換掉輸出頭——跟 CNN 遷移學習同一個決策表。</div>
   </div>
 </div>
@@ -669,20 +656,20 @@ logits = nn.Linear(8, K)(h[:, 0])   <span class="c"># 取第 0 個 token（[CLS]
 <div class="grid2" style="margin-top:16px">
 <details open><summary>1. 梯度消失：同一個病，兩個發病點</summary><div class="a">
 <b>CNN/MLP 版</b>：隱藏層 Sigmoid，斜率 ≤ 0.25，反向傳播逐層連乘 → 前層梯度≈0，「前幾層權重不動」。解法：換 ReLU。<br>
-<details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：Transformer 版</summary><div class="scope-content"><b>Transformer 版</b>：不除 √d_k，原始分數太大 → 注意力 softmax 飽和（S 曲線躺平）→ 梯度≈0。解法：不能換掉 softmax（要有它才是比例），改成進 softmax 前除 √d_k。<br></div></details>
+<b>Transformer 版</b>：不除 √d_k，原始分數太大 → 注意力 softmax 飽和（S 曲線躺平）→ 梯度≈0。解法：不能換掉 softmax（要有它才是比例），改成進 softmax 前除 √d_k。<br>
 <b>共同解法</b>：殘差連接給梯度一條斜率 1 的直達路——ResNet 的捷徑、Transformer 的 Add。</div></details>
 
 <details><summary>2. 參數量：三個公式推遍所有題</summary><div class="a">
 Conv2D：k×k×C_in×C_out + C_out（C_in 看上一層，Pooling 不改）。<br>
 Dense/Linear：in×out + out（in 是 Flatten 後長度，或 d_model）。<br>
-<details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：參數量：Embedding</summary><div class="scope-content">Embedding：V×d_model。<br></div></details>
+Embedding：V×d_model。<br>
 沒參數的：Pooling、Flatten、Dropout、激活函數、注意力的打分本身（旋鈕在 W_Q/W_K/W_V/W_O）。<br>
-變形題：反推 C_in（先減 bias 再除 k²×C_out）、哪一層最多（VGG16 是 Dense、<details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：參數量：Transformer 是 FFN</summary><div class="scope-content">Transformer 是 FFN</div></details>）。</div></details>
+變形題：反推 C_in（先減 bias 再除 k²×C_out）、哪一層最多（VGG16 是 Dense、Transformer 是 FFN）。</div></details>
 
 <details><summary>3. 形狀鏈：三條規則</summary><div class="a">
 矩陣乘法：(m×n)(n×p) = (m×p)，中間要相等。<br>
-<details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：Conv 輸出邊長公式與 stride</summary><div class="scope-content">Conv 輸出邊長：⌊(n+2p−k)/s⌋+1；same 且 s=1 → 不變；Pool 2×2 → 減半。<br></div></details>
-<details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：形狀鏈：softmax/sum 的 axis 與 keepdims</summary><div class="scope-content">softmax/sum 的 axis：形狀括號從尾巴數，−1 是最後一軸，也就是最後一個中括號在跑；注意力沿 −1 讓每列加總 1；<code>keepdims=True</code> 讓 (L,1) 能和 (L,L) 廣播相除。<br></div></details>
+Conv 輸出邊長：⌊(n+2p−k)/s⌋+1；same 且 s=1 → 不變；Pool 2×2 → 減半。<br>
+softmax/sum 的 axis：形狀括號從尾巴數，−1 是最後一軸，也就是最後一個中括號在跑；注意力沿 −1 讓每列加總 1；<code>keepdims=True</code> 讓 (L,1) 能和 (L,L) 廣播相除。<br>
 框架差異：Keras (N,H,W,C)、PyTorch (N,C,H,W)；序列都是 (N,L,d_model)（PyTorch 要 <code>batch_first=True</code>）。</div></details>
 
 <details><summary>4. 輸出層與損失、遷移學習：兩張決策表通用</summary><div class="a">
@@ -694,14 +681,14 @@ Dense/Linear：in×out + out（in 是 Flatten 後長度，或 d_model）。<br>
 <p class="lead">先在心裡答完再展開。每題對應上面某一站，答不出就回那一站看圖。</p>
 <div style="margin-top:14px">
 <details><summary>Q1　<code>Conv2D(96, (5,5))</code> 接在輸出 (14,14,48) 的層後面，參數量？</summary><div class="a">5×5×48×96 + 96 = 115,200 + 96 = <b>115,296</b>。C_in = 48 是上一層的通道數。（站 2）</div></details>
-<details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：自我檢核 Q2</summary><div class="scope-content"><details><summary>Q2　輸入 28×28，<code>Conv2D(32,(3,3),padding='valid')</code> → <code>MaxPooling2D(2)</code>，輸出形狀？</summary><div class="a">valid：28−3+1 = 26 → (26,26,32)；Pool 減半 → <b>(13,13,32)</b>。參數量與這兩個形狀無關，仍是 3×3×1×32+32 = 320（灰階 C_in=1）。（站 2b、4）</div></details></div></details>
+<details><summary>Q2　輸入 28×28，<code>Conv2D(32,(3,3),padding='valid')</code> → <code>MaxPooling2D(2)</code>，輸出形狀？</summary><div class="a">valid：28−3+1 = 26 → (26,26,32)；Pool 減半 → <b>(13,13,32)</b>。參數量與這兩個形狀無關，仍是 3×3×1×32+32 = 320（灰階 C_in=1）。（站 2b、4）</div></details>
 <details><summary>Q3　PyTorch 模型 <code>forward</code> 最後寫了 <code>F.softmax(self.fc(x), dim=1)</code>，損失用 <code>nn.CrossEntropyLoss</code>。問題？</summary><div class="a">雙重 softmax。CE 內含 softmax，再做一次會把比例再壓一次，梯度變小、訓練變慢。改回傳 <code>self.fc(x)</code>。（站 7）</div></details>
-<details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：自我檢核 Q4</summary><div class="scope-content"><details><summary>Q4　Q (6×32)、K (10×32)、V (10×48)，注意力輸出形狀？softmax 沿哪個軸？</summary><div class="a">(6×32)(32×10) = (6,10) → softmax axis=−1 讓每列 10 個加總 1 → (6,10)(10×48) = <b>(6, 48)</b>。輸出 = (Q 的 token 數, V 的維度)。（Transformer 站 4）</div></details></div></details>
-<details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：自我檢核 Q5</summary><div class="scope-content"><details><summary>Q5　把 d_k 從 64 改成 1024，其他不變，忘記除 √d_k 會怎樣？</summary><div class="a">點積是 1024 項相加，原始分數變大 → softmax 進飽和 → 比例接近 one-hot → 梯度≈0 → 學不動。這跟「隱藏層全 Sigmoid」是同一種梯度消失，但發病在注意力中間的 softmax，解法是除 √d_k 而非換激活。（共用考點 1）</div></details></div></details>
-<details class="scope-out"><summary data-scope-added="true"><span class="scope-label">範圍外・考前不讀</span>範圍外（指引與正式卷未出現）：自我檢核 Q6</summary><div class="scope-content"><details><summary>Q6　<code>nn.MultiheadAttention(embed_dim=100, num_heads=8)</code> 會怎樣？</summary><div class="a">報錯。100 不能被 8 整除，每個 head 的 d_k = embed_dim ÷ num_heads 必須是整數。改 96 或 heads=4/5/10。（Transformer 站 5）</div></details></div></details>
+<details><summary>Q4　Q (6×32)、K (10×32)、V (10×48)，注意力輸出形狀？softmax 沿哪個軸？</summary><div class="a">(6×32)(32×10) = (6,10) → softmax axis=−1 讓每列 10 個加總 1 → (6,10)(10×48) = <b>(6, 48)</b>。輸出 = (Q 的 token 數, V 的維度)。（Transformer 站 4）</div></details>
+<details><summary>Q5　把 d_k 從 64 改成 1024，其他不變，忘記除 √d_k 會怎樣？</summary><div class="a">點積是 1024 項相加，原始分數變大 → softmax 進飽和 → 比例接近 one-hot → 梯度≈0 → 學不動。這跟「隱藏層全 Sigmoid」是同一種梯度消失，但發病在注意力中間的 softmax，解法是除 √d_k 而非換激活。（共用考點 1）</div></details>
+<details><summary>Q6　<code>nn.MultiheadAttention(embed_dim=100, num_heads=8)</code> 會怎樣？</summary><div class="a">報錯。100 不能被 8 整除，每個 head 的 d_k = embed_dim ÷ num_heads 必須是整數。改 96 或 heads=4/5/10。（Transformer 站 5）</div></details>
 <details><summary>Q7　ResNet 的捷徑和 Transformer 的 Add & Norm 裡的 Add，哪裡一樣？</summary><div class="a">都是把區塊輸入 x 直接<b>相加</b>到區塊輸出，區塊只需學殘差 F(x)；F(x)→0 就是恆等映射，所以加深不會變差，梯度也多一條斜率 1 的路。（CNN 經典模型表、Transformer 站 6）</div></details>
 </div>
 
-<p class="note" style="margin-top:40px">能力碼：主要 L23203 深度學習原理與框架；形狀鏈與矩陣乘法 L23102；輸出層與損失 L23202；遷移學習決策 L23302。數字例子為教學設定，考古題引用：114-2 Q21、115-1 Q18–Q20、Q40，（非官方）115-2 模擬 Q49；114-2 Q42–44。</p>
+<p class="note" style="margin-top:40px">能力碼：主要 L23203 深度學習原理與框架；形狀鏈與矩陣乘法 L23102；輸出層與損失 L23202；遷移學習決策 L23302。數字例子為教學設定，考古題引用：114-2 Q21、115-1 Q18–Q20、Q40，115-2 樣題 Q49。</p>
 </div>
 </body></html>
